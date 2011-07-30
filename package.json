@@ -1,0 +1,23 @@
+{
+  "author": "Brian McDaniel <brianmcd05@gmail.com>",
+  "name": "contextify",
+  "description": "Turn an object into a persistent execution context.",
+  "version": "0.0.1",
+  "repository": {
+    "url": "https://github.com/brianmcd/contextify.git"
+  },
+  "main": "./lib/contextify.js",
+  "directories": {
+    "lib": "./lib"
+  },
+  "scripts": {
+    "build" : "node-waf configure build"
+  },
+  "engines": {
+    "node": ">=0.4.0"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "nodeunit" : ">=0.5.x"
+  }
+}
