@@ -4,6 +4,7 @@ Turn an object into a V8 execution context.  A contextified object acts as the g
 
 ## Examples
 ```javascript
+var Contextify = require('contextify');
 var sandbox = { console : console, prop1 : 'prop1'};
 Contextify(sandbox);
 sandbox.run('console.log(prop1);');
