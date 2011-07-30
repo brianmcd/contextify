@@ -27,9 +27,11 @@ setTimeout(function () {
 
 **Contextify([sandbox])**
 
-    sandbox - The object to contextify, which will be modified as described below.  If no sandbox is specified, an empty object will be allocated and used instead.
+    sandbox - The object to contextify, which will be modified as described below
+              If no sandbox is specified, an empty object will be allocated and used instead.
 
-    Returns the contextified object.  It doesn't make a copy, so if you already have a reference to the sandbox, you don't need to catch the return value.
+    Returns the contextified object.  It doesn't make a copy, so if you already have a reference
+    to the sandbox, you don't need to catch the return value.
 
 A Contextified object has 2 methods added to it:
 
