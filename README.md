@@ -98,3 +98,6 @@ Output:
 
     OK: 55 assertions (12ms)
 
+## Building
+
+    node-waf configure build
