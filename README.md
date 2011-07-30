@@ -25,17 +25,20 @@ setTimeout(function () {
 ```
 ## Details
 
-Contextify([sandbox])
+**Contextify([sandbox])**
+
 sandbox - The object to contextify, which will be modified as described below.  If no sandbox is specified, an empty object will be allocated and used instead.
 
 Returns the contextified object.  It doesn't make a copy, so if you already have a reference to the sandbox, you don't need to catch the return value.
 
 A Contextified object has 2 methods added to it:
 
-1. run(code, filename)
+1. **run(code, filename)**
+
 code is a string containing JavaScript to execute, and filename is an optional filename for debugging.
 
-2. getGlobal()
+2. **getGlobal()**
+
 This returns the actual global object for the V8 context.  The global object is initialized with interceptors (discussed below) which forward accesses on it to the contextified object.  This means the contextified object acts like the global object in most cases.  Soemtimes, though, you need to make a reference to the actual global object.
 
 For example:
