@@ -33,9 +33,12 @@ Returns the contextified object.  It doesn't make a copy, so if you already have
 
 A Contextified object has 2 methods added to it:
 
-1. **run(code, filename)**
+**run(code, [filename])**
 
-code is a string containing JavaScript to execute, and filename is an optional filename for debugging.
+    code - string containing JavaScript to execute
+    filename  - an optional filename for debugging.
+
+    Runs the code in the Contextified object's context.
 
 2. **getGlobal()**
 
@@ -57,7 +60,7 @@ window.run("console.log(window === this);");
 // prints true
 ```
 
-The global object returned by getGlobal can be treated like the contextified object, except that __define[GS]etter__ will not work on it.  Define getters and setters on the actual sandbox object instead.
+The global object returned by getGlobal can be treated like the contextified object, except that defining getters/setters will not work on it.  Define getters and setters on the actual sandbox object instead.
 
 ## Install
 
