@@ -13,13 +13,13 @@ private:
 public:
     // Create a new WrappedContext and set it as a hidden property in the
     // sandbox and in the context's global object.
-    static void Embed(Local<Object> sbx, Persistent<Context> context) {
+    static void Embed(Persistent<Object> sandbox, Persistent<Context> context) {
         HandleScope scope;
-        Persistent<Object> sandbox = Persistent<Object>::New(sbx);
         WrappedContext* wc = new WrappedContext(context);
 
         Local<ObjectTemplate> ctxTmpl = ObjectTemplate::New();
         ctxTmpl->SetInternalFieldCount(1);
+        //TODO: is wrapped object leaking?
         Local<Object> wrapped = ctxTmpl->NewInstance();
         wrapped->SetPointerInInternalField(0, wc);
 
@@ -28,7 +28,7 @@ public:
         sandbox.MakeWeak((void*) wc, WrappedContext::CleanupContext);
     }
 
-    static Persistent<Context> Extract(Local<Object> sandbox) {
+    static Persistent<Context> Extract(Handle<Object> sandbox) {
         HandleScope scope;
         Local<Object> wrappedObj =
             sandbox->GetHiddenValue(String::New("context"))->ToObject();
@@ -46,7 +46,7 @@ public:
 
 static Handle<Value> Wrap(const Arguments& args);
 static Handle<Value> Run(const Arguments& args);
-static Persistent<Context> CreateContext(Handle<Object> sandbox);
+static Persistent<Context> CreateContext(Persistent<Object> sandbox);
 static Handle<Value> GetGlobal(const Arguments& args);
 
 static Handle<Value> GlobalPropertyGetter(Local<String> property,
@@ -63,11 +63,11 @@ static Handle<Array> GlobalPropertyEnumerator(const AccessorInfo &info);
 // args[0] = the sandbox object
 static Handle<Value> Wrap(const Arguments& args) {
     HandleScope scope;
-    Local<Object> sandbox;
+    Persistent<Object> sandbox;
     if ((args.Length() > 0) && (args[0]->IsObject())) {
-        sandbox = args[0]->ToObject();
+        sandbox = Persistent<Object>::New(args[0]->ToObject());
     } else {
-        sandbox = Object::New();
+        sandbox = Persistent<Object>::New(Object::New());
     }
     Persistent<Context> context = CreateContext(sandbox);
     WrappedContext::Embed(sandbox, context);
@@ -76,10 +76,46 @@ static Handle<Value> Wrap(const Arguments& args) {
     return scope.Close(sandbox);
 }
 
+class SandboxRef {
+public:
+    Persistent<Object> sandbox;
+
+    SandboxRef(Handle<Object> sbx) {
+        sandbox = Persistent<Object>::New(sbx);
+        sandbox.MakeWeak(NULL, SandboxRef::CleanupNoOp);
+    };
+    // Sandbox should get cleaned up by the other weak reference.
+    ~SandboxRef() { };
+
+    // TODO: inline
+    static Persistent<Object> GetSandbox(Local<Object> wrapper) {
+        SandboxRef* ref =
+            (SandboxRef*) wrapper->GetPointerFromInternalField(0);
+        return ref->sandbox;
+    }
+
+    static void Cleanup(Persistent<Value> wrapper, void* parameter) {
+        SandboxRef* ref = (SandboxRef*) parameter;
+        delete ref;
+        wrapper.Dispose();
+    }
+
+    static void CleanupNoOp(Persistent<Value> sandbox, void* parameter) {};
+};
+
 // Create a context whose global object uses the sandbox to lookup and set
 // properties.
-static Persistent<Context> CreateContext(Handle<Object> sandbox) {
+static Persistent<Context> CreateContext(Persistent<Object> sandbox) {
     HandleScope scope;
+    SandboxRef* ref = new SandboxRef(sandbox); 
+    //TODO: factor this out
+    Local<ObjectTemplate> wrapperTmpl = ObjectTemplate::New();
+    wrapperTmpl->SetInternalFieldCount(1);
+    Local<Object> wrapped = wrapperTmpl->NewInstance();
+    wrapped->SetPointerInInternalField(0, ref);
+    Persistent<Object> weak = Persistent<Object>::New(wrapped);
+    weak.MakeWeak((void*) ref, SandboxRef::Cleanup);
+
     // Set up the context's global object.
     Local<FunctionTemplate> ftmpl = FunctionTemplate::New();
     ftmpl->SetHiddenPrototype(true);
@@ -90,7 +126,7 @@ static Persistent<Context> CreateContext(Handle<Object> sandbox) {
                                    GlobalPropertyQuery,
                                    GlobalPropertyDeleter,
                                    GlobalPropertyEnumerator,
-                                   sandbox);
+                                   wrapped);
     Persistent<Context> context = Context::New(NULL, otmpl);
     // Get rid of the proxy object.
     context->DetachGlobal();
@@ -134,7 +170,7 @@ static Handle<Value> GetGlobal(const Arguments& args) {
 static Handle<Value> GlobalPropertyGetter (Local<String> property,
                                            const AccessorInfo &info) {
     HandleScope scope;
-    Local<Object> sandbox = info.Data()->ToObject();
+    Persistent<Object> sandbox = SandboxRef::GetSandbox(info.Data()->ToObject());
     // First check the sandbox object.
     Local<Value> rv = sandbox->Get(property);
     if (rv->IsUndefined()) {
@@ -152,7 +188,7 @@ static Handle<Value> GlobalPropertySetter (Local<String> property,
                                            Local<Value> value,
                                            const AccessorInfo &info) {
     HandleScope scope;
-    Local<Object> sandbox = info.Data()->ToObject();
+    Persistent<Object> sandbox = SandboxRef::GetSandbox(info.Data()->ToObject());
     sandbox->Set(property, value);
     return scope.Close(value);
 }
@@ -166,7 +202,7 @@ static Handle<Integer> GlobalPropertyQuery(Local<String> property,
 static Handle<Boolean> GlobalPropertyDeleter(Local<String> property,
                                              const AccessorInfo &info) {
     HandleScope scope;
-    Local<Object> sandbox = info.Data()->ToObject();
+    Persistent<Object> sandbox = SandboxRef::GetSandbox(info.Data()->ToObject());
     bool success = sandbox->Delete(property);
     if (!success) {
         Persistent<Context> context = WrappedContext::Extract(sandbox);
@@ -177,7 +213,7 @@ static Handle<Boolean> GlobalPropertyDeleter(Local<String> property,
 
 static Handle<Array> GlobalPropertyEnumerator(const AccessorInfo &info) {
     HandleScope scope;
-    Local<Object> sandbox = info.Data()->ToObject();
+    Persistent<Object> sandbox = SandboxRef::GetSandbox(info.Data()->ToObject());
     return scope.Close(sandbox->GetPropertyNames());
 }
 
