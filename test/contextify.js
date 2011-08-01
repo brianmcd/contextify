@@ -218,6 +218,21 @@ exports['test global'] = {
         sandbox.run("function testing () {}");
         test.notEqual(global.testing, undefined);
         test.done();
+    },
+
+    // Make sure global can be a receiver for run().
+    'test global.run()' : function (test) {
+        var global = Contextify().getGlobal();
+        global.run("x = 5");
+        test.equal(global.x, 5);
+        test.done();
+    },
+    
+    // Make sure global can be receiver for getGlobal().
+    'test global.getGlobal()' : function (test) {
+        var global = Contextify().getGlobal();
+        test.deepEqual(global, global.getGlobal());
+        test.done();
     }
 };
 
