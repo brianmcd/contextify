@@ -134,13 +134,14 @@ static Handle<Value> Run(const Arguments& args) {
         script = Script::Compile(code);
     }
     if (script.IsEmpty()) {
+      context->Exit();
       return trycatch.ReThrow();
     }
     Handle<Value> result = script->Run();
+    context->Exit();
     if (result.IsEmpty()) {
         return trycatch.ReThrow();
     }
-    context->Exit();
 }
 
 static Handle<Value> GetGlobal(const Arguments& args) {
