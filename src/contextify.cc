@@ -1,4 +1,5 @@
 #include "node.h"
+#include <string>
 using namespace v8;
 using namespace node;
 
@@ -7,11 +8,14 @@ class WrappedRef {
 public:
     Persistent<T> m_handle;
     bool m_weak;
+    std::string m_tag;
 
-    WrappedRef(Persistent<T> handle, bool weak) : m_weak(weak) {
+    // TODO: it would be cleaner to take a local and make a new ref here, according to weak.
+    WrappedRef(Persistent<T> handle, bool weak, std::string tag) : m_weak(weak) {
         m_handle = handle;
+        m_tag = tag;
         if (weak) {
-            m_handle.MakeWeak(NULL, WrappedRef<T>::FreeHandle);
+            m_handle.MakeWeak(this, WrappedRef<T>::FreeHandle);
         }
     }
 
@@ -22,12 +26,14 @@ public:
     }
 
     static void FreeHandle(Persistent<Value> handle, void* param) {
+        WrappedRef<T>* wr = (WrappedRef<T>*) param;
         handle.Dispose();
     }
 
-    static Local<Object> Create(Persistent<T> handle, bool weak) {
+    static Local<Object> Create(Persistent<T> handle, bool weak, std::string tag = "") {
+        static int count = 0;
         HandleScope scope;
-        WrappedRef<T>* ref = new WrappedRef<T>(handle, weak);
+        WrappedRef<T>* ref = new WrappedRef<T>(handle, weak, tag);
 
         Local<ObjectTemplate> wrapperTmpl = ObjectTemplate::New();
         wrapperTmpl->SetInternalFieldCount(1);
@@ -40,6 +46,7 @@ public:
     }
 
     static void FreeWrapped(Persistent<Value> wrapped, void* param) {
+        static int count = 0;
         WrappedRef<T>* wr = (WrappedRef<T>*)param;
         delete wr;
         wrapped.Dispose();
@@ -80,11 +87,12 @@ static Handle<Value> Wrap(const Arguments& args) {
     Persistent<Context> context = CreateContext(sandbox);
     // Use a strong reference between sandbox -> wrapped, so that wrapped gets
     // GC'd when sandbox goes out of scope.
-    Local<Object> wrapped = WrappedRef<Context>::Create(context, false);
+    Local<Object> wrapped = WrappedRef<Context>::Create(context, false, "strong context");
     sandbox->SetHiddenValue(String::New("wrapped"), wrapped);
     // Use a weak reference between global -> wrapped, or else wrapped will be
     // kept alive.
-    Local<Object> wrappedWeak = WrappedRef<Context>::Create(context, true);
+    Persistent<Context> weakContext = Persistent<Context>::New(context);
+    Local<Object> wrappedWeak = WrappedRef<Context>::Create(weakContext, true, "weak context");
     context->Global()->SetHiddenValue(String::New("wrapped"), wrappedWeak);
     NODE_SET_METHOD(sandbox, "run", Run);
     NODE_SET_METHOD(sandbox, "getGlobal", GetGlobal);
@@ -96,7 +104,7 @@ static Handle<Value> Wrap(const Arguments& args) {
 static Persistent<Context> CreateContext(Local<Object> box) {
     HandleScope scope;
     Persistent<Object> sandbox = Persistent<Object>::New(box);
-    Local<Object> wrapped = WrappedRef<Object>::Create(sandbox, true);
+    Local<Object> wrapped = WrappedRef<Object>::Create(sandbox, true, "weak sandbox");
 
     // Set up the context's global object.
     Local<FunctionTemplate> ftmpl = FunctionTemplate::New();
@@ -142,6 +150,7 @@ static Handle<Value> Run(const Arguments& args) {
     if (result.IsEmpty()) {
         return trycatch.ReThrow();
     }
+    return scope.Close(result);
 }
 
 static Handle<Value> GetGlobal(const Arguments& args) {
@@ -171,7 +180,7 @@ static Handle<Value> GlobalPropertyGetter (Local<String> property,
     return scope.Close(rv);
 }
 
-// Global variables get set back on the window object.
+// Global variables get set back on the sandbox object.
 static Handle<Value> GlobalPropertySetter (Local<String> property,
                                            Local<Value> value,
                                            const AccessorInfo &info) {
