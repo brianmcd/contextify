@@ -10,10 +10,8 @@ template <class T>
 class WrappedHandle {
 public:
     Persistent<T> m_handle;
-    std::string m_tag;
-    WrappedHandle(Handle<T> handle, std::string tag = "", bool weak = false) {
+    WrappedHandle(Handle<T> handle, bool weak = false) {
         m_handle = Persistent<T>::New(handle);
-        m_tag = tag;
         if (weak) {
             m_handle.MakeWeak(NULL, WrappedHandle::WeakCleanup);
         }
@@ -67,7 +65,7 @@ static Handle<Value> Wrap(const Arguments& args) {
         sandbox = Object::New();
     }
     Persistent<Context> context = CreateContext(sandbox);
-    WrappedHandle<Context>* wh = new WrappedHandle<Context>(context, "context");
+    WrappedHandle<Context>* wh = new WrappedHandle<Context>(context);
     context.MakeWeak(NULL, CleanupContext);
     Local<Value> external = External::Wrap(wh);
     sandbox->SetHiddenValue(String::New("wrapped"), external);
@@ -101,7 +99,7 @@ static Persistent<Context> CreateContext(Local<Object> sandbox) {
     // the sandbox gets GC'd).
     // 
     // So, we embed a WrappedHandle into a fresh object as an internal field.
-    WrappedHandle<Object>* wh = new WrappedHandle<Object>(sandbox, "sandbox", true);
+    WrappedHandle<Object>* wh = new WrappedHandle<Object>(sandbox, true);
     Local<ObjectTemplate> wrapperTmpl = ObjectTemplate::New();
     wrapperTmpl->SetInternalFieldCount(1);
     Local<Object> wrapped = wrapperTmpl->NewInstance();
