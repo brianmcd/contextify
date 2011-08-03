@@ -6,12 +6,15 @@ using namespace node;
 // This class exists so we can store hidden properties that aren't values
 // (e.g. we need to store a Context inside of the sandbox and global objects).
 // SetHiddenValue only accepts a Value.
+//
+// Note: The passed in handle is assigned to m_handle.  A new handle isn't
+// made.
 template <class T>
 class WrappedHandle {
 public:
     Persistent<T> m_handle;
-    WrappedHandle(Handle<T> handle, bool weak = false) {
-        m_handle = Persistent<T>::New(handle);
+    WrappedHandle(Persistent<T> handle, bool weak = false) {
+        m_handle = handle;
         if (weak) {
             m_handle.MakeWeak(NULL, WrappedHandle::WeakCleanup);
         }
@@ -50,11 +53,6 @@ static void CleanupSandbox(Persistent<Value> sandbox, void* param) {
     sandbox.Clear();
 };
 
-static void CleanupContext(Persistent<Value> context, void* param) {
-    context.Dispose();
-    context.Clear();
-}
-
 // args[0] = the sandbox object
 static Handle<Value> Wrap(const Arguments& args) {
     HandleScope scope;
@@ -66,7 +64,6 @@ static Handle<Value> Wrap(const Arguments& args) {
     }
     Persistent<Context> context = CreateContext(sandbox);
     WrappedHandle<Context>* wh = new WrappedHandle<Context>(context);
-    context.MakeWeak(NULL, CleanupContext);
     Local<Value> external = External::Wrap(wh);
     sandbox->SetHiddenValue(String::New("wrapped"), external);
     context->Global()->SetHiddenValue(String::New("wrapped"), external);
@@ -99,7 +96,8 @@ static Persistent<Context> CreateContext(Local<Object> sandbox) {
     // the sandbox gets GC'd).
     // 
     // So, we embed a WrappedHandle into a fresh object as an internal field.
-    WrappedHandle<Object>* wh = new WrappedHandle<Object>(sandbox, true);
+    Persistent<Object> pSandbox = Persistent<Object>::New(sandbox);
+    WrappedHandle<Object>* wh = new WrappedHandle<Object>(pSandbox, true);
     Local<ObjectTemplate> wrapperTmpl = ObjectTemplate::New();
     wrapperTmpl->SetInternalFieldCount(1);
     Local<Object> wrapped = wrapperTmpl->NewInstance();
