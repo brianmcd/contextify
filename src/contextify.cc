@@ -53,6 +53,12 @@ static void CleanupSandbox(Persistent<Value> sandbox, void* param) {
     sandbox.Clear();
 };
 
+// We only want to create 1 Function instance for each of these in this
+// context.  Was previously creating a new Function for each Contextified
+// object and causing a memory leak.
+Persistent<Function> runFunc;
+Persistent<Function> getGlobalFunc;
+
 // args[0] = the sandbox object
 static Handle<Value> Wrap(const Arguments& args) {
     HandleScope scope;
@@ -64,11 +70,21 @@ static Handle<Value> Wrap(const Arguments& args) {
     }
     Persistent<Context> context = CreateContext(sandbox);
     WrappedHandle<Context>* wh = new WrappedHandle<Context>(context);
+
     Local<Value> external = External::Wrap(wh);
     sandbox->SetHiddenValue(String::New("wrapped"), external);
     context->Global()->SetHiddenValue(String::New("wrapped"), external);
-    NODE_SET_METHOD(sandbox, "run", Run);
-    NODE_SET_METHOD(sandbox, "getGlobal", GetGlobal);
+
+    if (runFunc.IsEmpty()) {
+        Local<FunctionTemplate> runTmpl = FunctionTemplate::New(Run);
+        runFunc = Persistent<Function>::New(runTmpl->GetFunction());
+    }
+    sandbox->Set(String::NewSymbol("run"), runFunc);
+    if (getGlobalFunc.IsEmpty()) {
+        Local<FunctionTemplate> getGlobalTmpl = FunctionTemplate::New(GetGlobal);
+        getGlobalFunc = Persistent<Function>::New(getGlobalTmpl->GetFunction());
+    }
+    sandbox->Set(String::NewSymbol("getGlobal"), getGlobalFunc);
 
     Persistent<Object> weakSandbox = Persistent<Object>::New(sandbox);
     weakSandbox.MakeWeak((void*) wh, CleanupSandbox);
@@ -78,6 +94,8 @@ static Handle<Value> Wrap(const Arguments& args) {
 static void CleanupSandboxNamedRef(Persistent<Value> sandbox, void* param) {
     HandleScope scope;
     WrappedHandle<Object>* wh = (WrappedHandle<Object>*) param;
+    wh->m_handle.Dispose();
+    wh->m_handle.Clear();
     delete wh;
     sandbox.Dispose();
     sandbox.Clear();
@@ -87,22 +105,15 @@ static void CleanupSandboxNamedRef(Persistent<Value> sandbox, void* param) {
 // properties.
 static Persistent<Context> CreateContext(Local<Object> sandbox) {
     static int count = 0;
-    //printf("Created: %d\n", ++count);
     HandleScope scope;
 
     // We can't pass the sandbox directly to SetNamedPropertyHandler, or else
     // that will keep it alive forever (since the global won't be GC'd until
     // the context is destroyed, but the context won't get destroyed until the
     // the sandbox gets GC'd).
-    // 
-    // So, we embed a WrappedHandle into a fresh object as an internal field.
     Persistent<Object> pSandbox = Persistent<Object>::New(sandbox);
     WrappedHandle<Object>* wh = new WrappedHandle<Object>(pSandbox, true);
-    Local<ObjectTemplate> wrapperTmpl = ObjectTemplate::New();
-    wrapperTmpl->SetInternalFieldCount(1);
-    Local<Object> wrapped = wrapperTmpl->NewInstance();
-    wrapped->SetPointerInInternalField(0, wh);
-
+    
     // So we can clean up the WrappedHandle:
     Persistent<Object> weakSandbox = Persistent<Object>::New(sandbox);
     weakSandbox.MakeWeak((void*) wh, CleanupSandboxNamedRef);
@@ -117,7 +128,7 @@ static Persistent<Context> CreateContext(Local<Object> sandbox) {
                                    GlobalPropertyQuery,
                                    GlobalPropertyDeleter,
                                    GlobalPropertyEnumerator,
-                                   wrapped);
+                                   External::Wrap(wh));
     Persistent<Context> context = Context::New(NULL, otmpl);
     // Get rid of the proxy object.
     context->DetachGlobal();
@@ -166,17 +177,17 @@ static Handle<Value> GetGlobal(const Arguments& args) {
     return scope.Close(context->Global());
 }
 
-static Persistent<Object> UnwrapSandbox(Local<Object> target) {
+static Persistent<Object> UnwrapSandbox(Local<Value> target) {
     HandleScope scope;
     WrappedHandle<Object>* wh =
-        (WrappedHandle<Object>*) target->GetPointerFromInternalField(0);
+        (WrappedHandle<Object>*) External::Unwrap(target);
     return wh->m_handle;
 }
 
 static Handle<Value> GlobalPropertyGetter (Local<String> property,
                                            const AccessorInfo &info) {
     HandleScope scope;
-    Persistent<Object> sandbox = UnwrapSandbox(info.Data()->ToObject());
+    Persistent<Object> sandbox = UnwrapSandbox(info.Data());
     // First check the sandbox object.
     Local<Value> rv = sandbox->Get(property);
     if (rv->IsUndefined()) {
@@ -194,7 +205,7 @@ static Handle<Value> GlobalPropertySetter (Local<String> property,
                                            Local<Value> value,
                                            const AccessorInfo &info) {
     HandleScope scope;
-    Persistent<Object> sandbox = UnwrapSandbox(info.Data()->ToObject());
+    Persistent<Object> sandbox = UnwrapSandbox(info.Data());
     sandbox->Set(property, value);
     return scope.Close(value);
 }
@@ -208,7 +219,7 @@ static Handle<Integer> GlobalPropertyQuery(Local<String> property,
 static Handle<Boolean> GlobalPropertyDeleter(Local<String> property,
                                              const AccessorInfo &info) {
     HandleScope scope;
-    Persistent<Object> sandbox = UnwrapSandbox(info.Data()->ToObject());
+    Persistent<Object> sandbox = UnwrapSandbox(info.Data());
     bool success = sandbox->Delete(property);
     if (!success) {
         Persistent<Context> context = UnwrapContext(sandbox);
@@ -219,7 +230,7 @@ static Handle<Boolean> GlobalPropertyDeleter(Local<String> property,
 
 static Handle<Array> GlobalPropertyEnumerator(const AccessorInfo &info) {
     HandleScope scope;
-    Persistent<Object> sandbox = UnwrapSandbox(info.Data()->ToObject());
+    Persistent<Object> sandbox = UnwrapSandbox(info.Data());
     return scope.Close(sandbox->GetPropertyNames());
 }
 
