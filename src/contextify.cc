@@ -1,5 +1,4 @@
 #include "node.h"
-#include <string>
 using namespace v8;
 using namespace node;
 
