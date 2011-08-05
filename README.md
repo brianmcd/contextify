@@ -82,7 +82,6 @@ Testing is done with nodeunit.  Run the tests with
     nodeunit test/
 
 Output: 
-
     contextify
     ✔ basic tests - blank context
     ✔ basic tests - basic context
@@ -100,13 +99,19 @@ Output:
     ✔ test global - test deleter
     ✔ test global - test global class name
     ✔ test global - test global functions
+    ✔ test global - test global.run()
+    ✔ test global - test global.getGlobal()
     ✔ test multiple contexts
     prop1
     ✔ test console
     ✔ test exceptions
 
-    OK: 55 assertions (12ms)
+    OK: 57 assertions (12ms)
 
 ## Building
 
     node-waf configure build
+
+## Acknowledgments
+
+Inspiration taken from Assaf's Zombie.js context solution: https://github.com/assaf/zombie

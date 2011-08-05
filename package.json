@@ -18,6 +18,12 @@
   "engines": {
     "node": ">=0.4.0"
   },
+  "licenses": [
+    {
+        "type" : "MIT",
+        "url" : "http://github.com/brianmcd/contextify/blob/master/LICENSE.txt"
+    }
+  ],
   "dependencies": {},
   "devDependencies": {
     "nodeunit" : ">=0.5.x"
