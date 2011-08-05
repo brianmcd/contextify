@@ -51,6 +51,22 @@ exports['basic tests'] = {
         sandbox.run('var x = 3', "test.js");
         test.equal(sandbox.x, 3);
         test.done();
+    },
+
+    // Make sure getters/setters on the sandbox object are used.
+    'test accessors on sandbox' : function (test) {
+        var sandbox = {};
+        sandbox.__defineGetter__('test', function () { return 3;});
+        sandbox.__defineSetter__('test2', function (val) { this.x = val;});
+        Contextify(sandbox);
+        var global = sandbox.getGlobal();
+        test.equal(global.test, 3);
+        sandbox.test2 = 5;
+        test.equal(sandbox.x, 5);
+        global.test2 = 7;
+        test.equal(global.x, 7);
+        test.equal(sandbox.x, 7);
+        test.done();
     }
 };
 
