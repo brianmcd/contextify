@@ -82,7 +82,7 @@ Testing is done with nodeunit.  Run the tests with
     nodeunit test/
 
 Output: 
-    contextify
+
     ✔ basic tests - blank context
     ✔ basic tests - basic context
     ✔ basic tests - test contextified object extra properties
