@@ -96,6 +96,8 @@ Output:
     ✔ basic tests - test undefined sandbox
     ✔ basic tests - test for nonexistent properties
     ✔ basic tests - test run with filename
+    ✔ basic tests - test accessors on sandbox
+    ✔ basic tests - test dispose
     ✔ synchronous script tests - global variables in scripts should go on sandbox
     ✔ synchronous script tests - sandbox properties should be globals
     ✔ asynchronous script tests - global variables in scripts should go on sandbox
@@ -108,12 +110,13 @@ Output:
     ✔ test global - test global functions
     ✔ test global - test global.run()
     ✔ test global - test global.getGlobal()
+    ✔ test global - test global.dispose()
     ✔ test multiple contexts
     prop1
     ✔ test console
     ✔ test exceptions
 
-    OK: 57 assertions (12ms)
+    OK: 77 assertions (13ms)
 
 ## Building
 
