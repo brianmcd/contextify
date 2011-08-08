@@ -68,7 +68,7 @@ window.run("console.log(window === this);");
 
 The global object returned by getGlobal() can be treated like the contextified sandbox object, except that defining getters/setters will not work on it.  Define getters and setters on the actual sandbox object instead.
 
-**dispose()
+**dispose()**
 
 Frees the memory allocated for the underlying V8 context.  If you don't call this when you're done, the V8 context memory will leak, as will the sandbox memory, since the context's global stores a strong reference to the sandbox object.  You can still use your sandbox object after calling dispose(), but it's unsafe to use a global previously returned from getGlobal().  run, getGlobal, and dispose will be removed from the sandbox object.
 
