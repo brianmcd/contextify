@@ -1,4 +1,5 @@
 #include "node.h"
+#include <string>
 using namespace v8;
 using namespace node;
 
@@ -21,10 +22,12 @@ static Handle<Boolean> GlobalPropertyDeleter(Local<String> property,
                                              const AccessorInfo &accessInfo);
 static Handle<Array> GlobalPropertyEnumerator(const AccessorInfo &accessInfo);
 
-// The lifetime of ContextifyInfo is bound to that of the sandbox.
+// ContextifyInfo (and the context) will live until dispose() is called on
+// the sandbox or global.
 struct ContextifyInfo {
     Persistent<Context> context;
     Persistent<Object> sandbox;
+    Persistent<Object> global;
 
     void SetContext(Persistent<Context> context) {
         this->context = context;
@@ -32,29 +35,42 @@ struct ContextifyInfo {
 
     void SetSandbox(Local<Object> sandbox) {
         this->sandbox = Persistent<Object>::New(sandbox);
-        // When the sandbox is ready to be GC'd, we want to delete ourselves.
-        this->sandbox.MakeWeak(this, ContextifyInfo::Cleanup);
     }
-
-    // This is triggered when the Sandbox is ready to be GC'd.  In that case,
-    // we want to get rid of the context, the sandbox, and our references.
-    static void Cleanup(Persistent<Value> value, void* param) {
-        ContextifyInfo* info = static_cast<ContextifyInfo*>(param);
-        info->context.Dispose();
-        info->context.Clear();
-        info->sandbox.Dispose();
-        info->sandbox.Clear();
-        value.Dispose();
-        value.Clear();
-        delete info;
+    
+    void SetGlobal(Local<Object> global) {
+        this->global = Persistent<Object>::New(global);
     }
 };
+
+// Dispose is attached to the sandbox as 'dispose'.  It must be called to
+// free the sandbox and context memory.  ContextifyInfo keeps a strong
+// persistent reference to the sandbox, so if this isn't called, the sandbox
+// and the context will both leak.
+static Handle<Value> Dispose(const Arguments& args) {
+    Local<Value> wrapped = args.This()->GetHiddenValue(String::New("info"));
+    void* unwrapped = External::Unwrap(wrapped);
+    ContextifyInfo* info = static_cast<ContextifyInfo*>(unwrapped);
+    info->context.Dispose();
+    info->context.Clear();
+    info->global.Dispose();
+    info->global.Clear();
+    info->sandbox->Delete(String::NewSymbol("run"));
+    info->sandbox->Delete(String::NewSymbol("getGlobal"));
+    info->sandbox->Delete(String::NewSymbol("dispose"));
+    // Note: this won't actually free the sandbox memory unless references from
+    // the JavaScript side are also dropped.
+    info->sandbox.Dispose();
+    info->sandbox.Clear();
+    delete info;
+    return Undefined();
+}
 
 // We only want to create 1 Function instance for each of these in this
 // context.  Was previously creating a new Function for each Contextified
 // object and causing a memory leak.
 Persistent<Function> runFunc;
 Persistent<Function> getGlobalFunc;
+Persistent<Function> disposeFunc;
 
 // args[0] = the sandbox object
 static Handle<Value> Wrap(const Arguments& args) {
@@ -70,10 +86,11 @@ static Handle<Value> Wrap(const Arguments& args) {
     info->SetSandbox(sandbox);
     Persistent<Context> context = CreateContext(info);
     info->SetContext(context);
+    info->SetGlobal(context->Global());
 
     Local<Value> wrapped = External::Wrap(info);
     sandbox->SetHiddenValue(String::New("info"), wrapped);
-    context->Global()->SetHiddenValue(String::New("info"), wrapped);
+    info->global->SetHiddenValue(String::New("info"), wrapped);
 
     if (runFunc.IsEmpty()) {
         Local<FunctionTemplate> runTmpl = FunctionTemplate::New(Run);
@@ -86,6 +103,12 @@ static Handle<Value> Wrap(const Arguments& args) {
         getGlobalFunc = Persistent<Function>::New(getGlobalTmpl->GetFunction());
     }
     sandbox->Set(String::NewSymbol("getGlobal"), getGlobalFunc);
+
+    if (disposeFunc.IsEmpty()) {
+        Local<FunctionTemplate> disposeFuncTmpl = FunctionTemplate::New(Dispose);
+        disposeFunc = Persistent<Function>::New(disposeFuncTmpl->GetFunction());
+    }
+    sandbox->Set(String::NewSymbol("dispose"), disposeFunc);
 
     return scope.Close(sandbox);
 }
@@ -106,6 +129,7 @@ static Persistent<Context> CreateContext(ContextifyInfo* info) {
                                    GlobalPropertyEnumerator,
                                    External::Wrap(info));
     Persistent<Context> context = Context::New(NULL, otmpl);
+
     // Get rid of the proxy object.
     context->DetachGlobal();
     return context;
@@ -147,8 +171,7 @@ static Handle<Value> GetGlobal(const Arguments& args) {
     Local<Value> wrapped = args.This()->GetHiddenValue(String::New("info"));
     void* unwrapped = External::Unwrap(wrapped);
     ContextifyInfo* info = static_cast<ContextifyInfo*>(unwrapped);
-    Persistent<Context> context = info->context;
-    return scope.Close(context->Global());
+    return scope.Close(info->global);
 }
 
 static Handle<Value> GlobalPropertyGetter (Local<String> property,
@@ -161,10 +184,9 @@ static Handle<Value> GlobalPropertyGetter (Local<String> property,
     Local<Value> rv = sandbox->Get(property);
     if (rv->IsUndefined()) {
         // Next, check the global object (things like Object, Array, etc).
-        Persistent<Context> context = info->context;
         // This needs to call GetRealNamedProperty or else we'll get stuck in
         // an infinite loop here.
-        rv = context->Global()->GetRealNamedProperty(property);
+        rv = info->global->GetRealNamedProperty(property);
     }
     return scope.Close(rv);
 }
@@ -196,7 +218,7 @@ static Handle<Boolean> GlobalPropertyDeleter(Local<String> property,
     bool success = sandbox->Delete(property);
     if (!success) {
         Persistent<Context> context = info->context;
-        success = context->Global()->Delete(property);
+        success = info->global->Delete(property);
     }
     return scope.Close(Boolean::New(success));
 }

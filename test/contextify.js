@@ -27,6 +27,7 @@ exports['basic tests'] = {
         var sandbox = Contextify({});
         test.notEqual(sandbox.run, undefined);
         test.notEqual(sandbox.getGlobal, undefined);
+        test.notEqual(sandbox.dispose, undefined);
         test.done();
     },
 
@@ -66,6 +67,19 @@ exports['basic tests'] = {
         global.test2 = 7;
         test.equal(global.x, 7);
         test.equal(sandbox.x, 7);
+        test.done();
+    },
+
+    // Make sure dispose cleans up the sandbox.
+    'test dispose' : function (test) {
+        var sandbox = Contextify();
+        test.notEqual(sandbox.run, undefined);
+        test.notEqual(sandbox.getGlobal, undefined);
+        test.notEqual(sandbox.dispose, undefined);
+        sandbox.dispose();
+        test.equal(sandbox.run, undefined);
+        test.equal(sandbox.getGlobal, undefined);
+        test.equal(sandbox.dispose, undefined);
         test.done();
     }
 };
@@ -183,11 +197,12 @@ exports['test global'] = {
         };
         var global = Contextify(sandbox);
         var globalProps = Object.keys(global);
-        test.equal(globalProps.length, 4);
+        test.equal(globalProps.length, 5);
         test.ok(globalProps.indexOf('prop1') != -1);
         test.ok(globalProps.indexOf('prop2') != -1);
         test.ok(globalProps.indexOf('run') != -1);
         test.ok(globalProps.indexOf('getGlobal') != -1);
+        test.ok(globalProps.indexOf('dispose') != -1);
         test.done();
     },
 
@@ -198,18 +213,21 @@ exports['test global'] = {
             prop2 : 'prop2'
         };
         var global = Contextify(sandbox).getGlobal();
-        test.equal(Object.keys(sandbox).length, 4);
-        test.equal(Object.keys(global).length, 4);
+        test.equal(Object.keys(global).length, 5);
+        test.equal(Object.keys(sandbox).length, 5);
         delete global.prop1;
+        test.equal(Object.keys(global).length, 4);
+        test.equal(Object.keys(sandbox).length, 4);
+        delete global.prop2;
         test.equal(Object.keys(global).length, 3);
         test.equal(Object.keys(sandbox).length, 3);
-        delete global.prop2;
+        delete global.run;
         test.equal(Object.keys(global).length, 2);
         test.equal(Object.keys(sandbox).length, 2);
-        delete global.run;
+        delete global.getGlobal;
         test.equal(Object.keys(global).length, 1);
         test.equal(Object.keys(sandbox).length, 1);
-        delete global.getGlobal;
+        delete global.dispose;
         test.equal(Object.keys(global).length, 0);
         test.equal(Object.keys(sandbox).length, 0);
         test.done();
@@ -244,10 +262,25 @@ exports['test global'] = {
         test.done();
     },
     
-    // Make sure global can be receiver for getGlobal().
+    // Make sure global can be a receiver for getGlobal().
     'test global.getGlobal()' : function (test) {
         var global = Contextify().getGlobal();
         test.deepEqual(global, global.getGlobal());
+        test.done();
+    },
+
+    //Make sure global can be a receiver for dispose().
+    'test global.dispose()' : function (test) {
+        var sandbox = Contextify();
+        var global = sandbox.getGlobal();
+        test.notEqual(global.run, undefined);
+        test.notEqual(global.getGlobal, undefined);
+        test.notEqual(global.dispose, undefined);
+        global.dispose();
+        // It's not safe to use the global after disposing.
+        test.equal(sandbox.run, undefined);
+        test.equal(sandbox.getGlobal, undefined);
+        test.equal(sandbox.dispose, undefined);
         test.done();
     }
 };

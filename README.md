@@ -1,6 +1,6 @@
 # Contextify
 
-Turn an object into a V8 execution context.  A contextified object acts as the global 'this' when executing scripts in its context.  Contextify adds 2 methods to the contextified object: run(code, filename) and getGlobal().  The main difference between Contextify and Node's vm methods is that Contextify allows asynchronous functions to continue executing in the Contextified object's context.  See vm vs. Contextify below for more discussion.
+Turn an object into a V8 execution context.  A contextified object acts as the global 'this' when executing scripts in its context.  Contextify adds 3 methods to the contextified object: run(code, filename), getGlobal(), and dispose().  The main difference between Contextify and Node's vm methods is that Contextify allows asynchronous functions to continue executing in the Contextified object's context.  See vm vs. Contextify below for more discussion.
 
 ## Examples
 ```javascript
@@ -8,12 +8,14 @@ var Contextify = require('contextify');
 var sandbox = { console : console, prop1 : 'prop1'};
 Contextify(sandbox);
 sandbox.run('console.log(prop1);');
+sandbox.dispose(); // free the resources allocated for the context.
 ```
 
 ```javascript
 var sandbox = Contextify(); // returns an empty contextified object.
 sandbox.run('var x = 3;');
 console.log(sandbox.x); // prints 3
+sandbox.dispose();
 ```
 
 ```javascript
@@ -22,6 +24,7 @@ sandbox.run("setTimeout(function () { x = 3; }, 5);");
 console.log(sandbox.x); // prints undefined
 setTimeout(function () {
     console.log(sandbox.x); // prints 3
+    sandbox.dispose();
 }, 10);
 ```
 ## Details
@@ -63,7 +66,11 @@ window.run("console.log(window === this);");
 // prints true
 ```
 
-The global object returned by getGlobal() can be treated like the contextified object, except that defining getters/setters will not work on it.  Define getters and setters on the actual sandbox object instead.
+The global object returned by getGlobal() can be treated like the contextified sandbox object, except that defining getters/setters will not work on it.  Define getters and setters on the actual sandbox object instead.
+
+**dispose()
+
+Frees the memory allocated for the underlying V8 context.  If you don't call this when you're done, the V8 context memory will leak, as will the sandbox memory, since the context's global stores a strong reference to the sandbox object.  You can still use your sandbox object after calling dispose(), but it's unsafe to use a global previously returned from getGlobal().  run, getGlobal, and dispose will be removed from the sandbox object.
 
 ## Install
 
