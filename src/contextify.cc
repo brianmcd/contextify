@@ -49,7 +49,12 @@ struct ContextifyInfo {
 static Handle<Value> Dispose(const Arguments& args) {
     Local<Value> wrapped = args.This()->GetHiddenValue(String::New("info"));
     void* unwrapped = External::Unwrap(wrapped);
+    if (unwrapped == NULL) {
+        return ThrowException(String::New("Called dispose() twice."));
+    }
     ContextifyInfo* info = static_cast<ContextifyInfo*>(unwrapped);
+    info->sandbox->SetHiddenValue(String::New("info"), External::Wrap(NULL));
+    info->global->SetHiddenValue(String::New("info"), External::Wrap(NULL));
     info->context.Dispose();
     info->context.Clear();
     info->global.Dispose();
@@ -126,8 +131,7 @@ static Persistent<Context> CreateContext(ContextifyInfo* info) {
                                    GlobalPropertySetter,
                                    GlobalPropertyQuery,
                                    GlobalPropertyDeleter,
-                                   GlobalPropertyEnumerator,
-                                   External::Wrap(info));
+                                   GlobalPropertyEnumerator);
     Persistent<Context> context = Context::New(NULL, otmpl);
 
     // Get rid of the proxy object.
@@ -143,6 +147,9 @@ static Handle<Value> Run(const Arguments& args) {
     HandleScope scope;
     Local<Value> wrapped = args.This()->GetHiddenValue(String::New("info"));
     void* unwrapped = External::Unwrap(wrapped);
+    if (unwrapped == NULL) {
+        return ThrowException(String::New("Called run() after dispose()."));
+    }
     ContextifyInfo* info = static_cast<ContextifyInfo*>(unwrapped);
     Persistent<Context> context = info->context;
     context->Enter();
@@ -170,6 +177,9 @@ static Handle<Value> GetGlobal(const Arguments& args) {
     HandleScope scope;
     Local<Value> wrapped = args.This()->GetHiddenValue(String::New("info"));
     void* unwrapped = External::Unwrap(wrapped);
+    if (unwrapped == NULL) {
+        return ThrowException(String::New("Called getGlobal() after dispose()."));
+    }
     ContextifyInfo* info = static_cast<ContextifyInfo*>(unwrapped);
     return scope.Close(info->global);
 }
@@ -177,7 +187,11 @@ static Handle<Value> GetGlobal(const Arguments& args) {
 static Handle<Value> GlobalPropertyGetter (Local<String> property,
                                            const AccessorInfo &accessInfo) {
     HandleScope scope;
-    void* unwrapped = External::Unwrap(accessInfo.Data());
+    Local<Value> wrapped = accessInfo.This()->GetHiddenValue(String::New("info"));
+    void* unwrapped = External::Unwrap(wrapped);
+    if (unwrapped == NULL) {
+        return ThrowException(String::New("Called getGlobal() after dispose()."));
+    }
     ContextifyInfo* info = static_cast<ContextifyInfo*>(unwrapped);
     Persistent<Object> sandbox = info->sandbox;
     // First check the sandbox object.
@@ -196,7 +210,11 @@ static Handle<Value> GlobalPropertySetter (Local<String> property,
                                            Local<Value> value,
                                            const AccessorInfo &accessInfo) {
     HandleScope scope;
-    void* unwrapped = External::Unwrap(accessInfo.Data());
+    Local<Value> wrapped = accessInfo.This()->GetHiddenValue(String::New("info"));
+    void* unwrapped = External::Unwrap(wrapped);
+    if (unwrapped == NULL) {
+        return ThrowException(String::New("Tried to set a property on global after dispose()."));
+    }
     ContextifyInfo* info = static_cast<ContextifyInfo*>(unwrapped);
     Persistent<Object> sandbox = info->sandbox;
     bool success = sandbox->Set(property, value);
@@ -212,7 +230,12 @@ static Handle<Integer> GlobalPropertyQuery(Local<String> property,
 static Handle<Boolean> GlobalPropertyDeleter(Local<String> property,
                                              const AccessorInfo &accessInfo) {
     HandleScope scope;
-    void* unwrapped = External::Unwrap(accessInfo.Data());
+    Local<Value> wrapped = accessInfo.This()->GetHiddenValue(String::New("info"));
+    void* unwrapped = External::Unwrap(wrapped);
+    if (unwrapped == NULL) {
+        ThrowException(String::New("Tried to delete a property on global after dispose()."));
+        return False();
+    }
     ContextifyInfo* info = static_cast<ContextifyInfo*>(unwrapped);
     Persistent<Object> sandbox = info->sandbox;
     bool success = sandbox->Delete(property);
@@ -225,7 +248,14 @@ static Handle<Boolean> GlobalPropertyDeleter(Local<String> property,
 
 static Handle<Array> GlobalPropertyEnumerator(const AccessorInfo &accessInfo) {
     HandleScope scope;
-    void* unwrapped = External::Unwrap(accessInfo.Data());
+    Local<Value> wrapped = accessInfo.This()->GetHiddenValue(String::New("info"));
+    void* unwrapped = External::Unwrap(wrapped);
+    if (unwrapped == NULL) {
+        // We can't throw an exception because we have to return an Array,
+        // and ThrowException returns a value. Returning an empty Array is
+        // better than segfaulting.
+        return scope.Close(Array::New());
+    }
     ContextifyInfo* info = static_cast<ContextifyInfo*>(unwrapped);
     Persistent<Object> sandbox = info->sandbox;
     return scope.Close(sandbox->GetPropertyNames());
