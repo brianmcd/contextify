@@ -90,33 +90,8 @@ Testing is done with nodeunit.  Run the tests with
 
 Output: 
 
-    ✔ basic tests - blank context
-    ✔ basic tests - basic context
-    ✔ basic tests - test contextified object extra properties
-    ✔ basic tests - test undefined sandbox
-    ✔ basic tests - test for nonexistent properties
-    ✔ basic tests - test run with filename
-    ✔ basic tests - test accessors on sandbox
-    ✔ basic tests - test dispose
-    ✔ synchronous script tests - global variables in scripts should go on sandbox
-    ✔ synchronous script tests - sandbox properties should be globals
-    ✔ asynchronous script tests - global variables in scripts should go on sandbox
-    ✔ asynchronous script tests - sandbox properties should be globals
-    ✔ test global - basic test
-    ✔ test global - self references to the global object
-    ✔ test global - test enumerator
-    ✔ test global - test deleter
-    ✔ test global - test global class name
-    ✔ test global - test global functions
-    ✔ test global - test global.run()
-    ✔ test global - test global.getGlobal()
-    ✔ test global - test global.dispose()
-    ✔ test multiple contexts
-    prop1
-    ✔ test console
-    ✔ test exceptions
+    OK: 92 assertions (27ms)
 
-    OK: 77 assertions (13ms)
 
 ## Building
 
