@@ -195,7 +195,7 @@ exports['test global'] = {
             prop1 : 'prop1',
             prop2 : 'prop2'
         };
-        var global = Contextify(sandbox);
+        var global = Contextify(sandbox).getGlobal();
         var globalProps = Object.keys(global);
         test.equal(globalProps.length, 5);
         test.ok(globalProps.indexOf('prop1') != -1);
@@ -324,16 +324,109 @@ exports['test console'] = function (test) {
 
 
 // Make sure exceptions get thrown for invalid scripts.
-exports['test exceptions'] = function (test) {
-    var sandbox = Contextify();
-    test.throws(function () {
-        sandbox.run('doh');
-    });
-    test.throws(function () {
-        sandbox.run('x = y');
-    });
-    test.throws(function () {
-        sandbox.run('function ( { (( }{);');
-    });
+exports['test exceptions'] = {
+    'basic test' : function (test) {
+        var sandbox = Contextify();
+        test.throws(function () {
+            sandbox.run('doh');
+        });
+        test.throws(function () {
+            sandbox.run('x = y');
+        });
+        test.throws(function () {
+            sandbox.run('function ( { (( }{);');
+        });
+        test.done();
+    },
+
+    'test double dispose() - sandbox' : function (test) {
+        var sandbox = Contextify();
+        test.doesNotThrow(function () {
+            sandbox.dispose();
+        });
+        test.throws(function () {
+            sandbox.dispose();
+        }, 'Called dispose() twice.');
+        test.done();
+    },
+
+    'test double dispose - global' : function (test) {
+        var sandbox = Contextify();
+        var global = sandbox.getGlobal();
+        test.doesNotThrow(function () {
+            global.dispose();
+        });
+        test.throws(function () {
+            global.dispose();
+        }, 'Called dispose() twice.');
+        test.done();
+    },
+   
+    'test run() after dispose()' : function (test) {
+        var sandbox = Contextify();
+        test.doesNotThrow(function () {
+            sandbox.dispose();
+        });
+        test.throws(function () {
+            sandbox.run('var x = 3');
+        }, 'Called run() after dispose().');
+        test.done();
+    },
+
+    'test getGlobal() after dispose()' : function (test) {
+        var sandbox = Contextify();
+        test.doesNotThrow(function () {
+            sandbox.dispose();
+        });
+        test.throws(function () {
+            var g = sandbox.getGlobal();
+        }, 'Called getGlobal() after dispose().');
+        test.done();
+    },
+
+    'test global property getter after dispose()' : function (test) {
+        var sandbox = Contextify({prop1 : 'test'});
+        var global = sandbox.getGlobal();
+        test.doesNotThrow(function () {
+            sandbox.dispose();
+        });
+        test.throws(function () {
+            var x = global.prop1;
+        }, 'Tried to access global after dispose().');
+        test.done();
+    },
+
+    'test global property setter after dispose()' : function (test) {
+        var sandbox = Contextify();
+        var global = sandbox.getGlobal();
+        test.doesNotThrow(function () {
+            sandbox.dispose();
+        });
+        test.throws(function () {
+            global.x = 3;
+        }, 'Tried to set a property on global after dispose().');
+        test.done();
+    },
+
+    'test global property deleter after dispose()' : function (test) {
+        var sandbox = Contextify({prop1 : 'test'});
+        var global = sandbox.getGlobal();
+        test.doesNotThrow(function () {
+            sandbox.dispose();
+        });
+        test.throws(function () {
+            delete global.prop1;
+        }, 'Tried to delete a property on global after dispose().');
+        test.done();
+
+    }
+};
+
+exports['test global property enumerator after dispose()'] = function (test) {
+    var sandbox = Contextify({prop1 : 'test', prop2 : 'test'});
+    var global = sandbox.getGlobal();
+    sandbox.dispose();
+    var props = Object.keys(global);
+    test.equal(props.length, 0);
     test.done();
 };
