@@ -196,7 +196,7 @@ static Handle<Value> GlobalPropertyGetter (Local<String> property,
     Persistent<Object> sandbox = info->sandbox;
     // First check the sandbox object.
     Local<Value> rv = sandbox->Get(property);
-    if (rv->IsUndefined()) {
+    if (rv.IsEmpty() || rv->IsUndefined()) {
         // Next, check the global object (things like Object, Array, etc).
         // This needs to call GetRealNamedProperty or else we'll get stuck in
         // an infinite loop here.
