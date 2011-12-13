@@ -197,8 +197,16 @@ static Handle<Value> GlobalPropertyGetter (Local<String> property,
     // First check the sandbox object.
     // We need to use the HasRealNamedProperty check so that we don't miss
     // properties that have been declared but not defined.
-    if (sandbox->HasRealNamedProperty(property)) {
-        return scope.Close(sandbox->GetRealNamedProperty(property));
+    // HasRealNamedProperty doesn't check the prototype chain, so we have to
+    // walk it ourselves.
+    Handle<Value> current = sandbox;
+    Handle<Object> obj;
+    while (current->IsObject()) {
+        obj = current->ToObject();
+        if (obj->HasRealNamedProperty(property)) {
+            return scope.Close(obj->GetRealNamedProperty(property));
+        }
+        current = obj->GetPrototype();
     }
     // Next, check the global object (things like Object, Array, etc).
     // This needs to call GetRealNamedProperty or else we'll get stuck in
