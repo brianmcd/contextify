@@ -195,14 +195,15 @@ static Handle<Value> GlobalPropertyGetter (Local<String> property,
     ContextifyInfo* info = static_cast<ContextifyInfo*>(unwrapped);
     Persistent<Object> sandbox = info->sandbox;
     // First check the sandbox object.
-    Local<Value> rv = sandbox->Get(property);
-    if (rv.IsEmpty() || rv->IsUndefined()) {
-        // Next, check the global object (things like Object, Array, etc).
-        // This needs to call GetRealNamedProperty or else we'll get stuck in
-        // an infinite loop here.
-        rv = info->global->GetRealNamedProperty(property);
+    // We need to use the HasRealNamedProperty check so that we don't miss
+    // properties that have been declared but not defined.
+    if (sandbox->HasRealNamedProperty(property)) {
+        return scope.Close(sandbox->GetRealNamedProperty(property));
     }
-    return scope.Close(rv);
+    // Next, check the global object (things like Object, Array, etc).
+    // This needs to call GetRealNamedProperty or else we'll get stuck in
+    // an infinite loop here.
+    return info->global->GetRealNamedProperty(property);
 }
 
 // Global variables get set back on the sandbox object.
@@ -224,7 +225,18 @@ static Handle<Value> GlobalPropertySetter (Local<String> property,
 static Handle<Integer> GlobalPropertyQuery(Local<String> property,
                                            const AccessorInfo &accessInfo) {
     HandleScope scope;
-    return scope.Close(Integer::New(None));
+    Local<Value> wrapped = accessInfo.This()->GetHiddenValue(String::New("info"));
+    void* unwrapped = External::Unwrap(wrapped);
+    if (unwrapped == NULL) {
+        ThrowException(String::New("Called getGlobal() after dispose()."));
+        return scope.Close(Handle<Integer>());
+    }
+    ContextifyInfo* info = static_cast<ContextifyInfo*>(unwrapped);
+    if (info->sandbox->HasRealNamedProperty(property) ||
+        info->global->HasRealNamedProperty(property)) {
+        return scope.Close(Integer::New(None));
+    }
+    return scope.Close(Handle<Integer>());
 }
 
 static Handle<Boolean> GlobalPropertyDeleter(Local<String> property,
