@@ -46,6 +46,23 @@ exports['basic tests'] = {
         test.done();
     },
 
+    // Make sure properties with value "undefined" are there.
+    'test for "undefined" properties' : function (test) {
+        var sandbox = { x: undefined };
+        Contextify(sandbox);
+        sandbox.run("_x = x");
+        test.equal(sandbox._x, undefined);
+        test.done();
+    },
+
+    'test for "undefined" variables' : function (test) {
+        var sandbox = { };
+        Contextify(sandbox);
+        sandbox.run("var y; _y = y");
+        test.equal(sandbox._y, undefined);
+        test.done();
+    },
+
     // Make sure run can be called with a filename parameter.
     'test run with filename' : function (test) {
         var sandbox = Contextify();
