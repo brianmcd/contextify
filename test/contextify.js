@@ -64,6 +64,9 @@ exports['basic tests'] = {
         // This should apply to top-level variables (global properties).
         sandbox.run("var z; _z = z");
         test.equal(sandbox._z, undefined);
+        // Make sure nothing wacky happens when accessing global declared but
+        // undefined variables.
+        test.equal(sandbox.getGlobal().z, undefined);
         test.done();
     },
 
