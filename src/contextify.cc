@@ -194,24 +194,11 @@ static Handle<Value> GlobalPropertyGetter (Local<String> property,
     }
     ContextifyInfo* info = static_cast<ContextifyInfo*>(unwrapped);
     Persistent<Object> sandbox = info->sandbox;
-    // First check the sandbox object.
-    // We need to use the HasRealNamedProperty check so that we don't miss
-    // properties that have been declared but not defined.
-    // HasRealNamedProperty doesn't check the prototype chain, so we have to
-    // walk it ourselves.
-    Handle<Value> current = sandbox;
-    Handle<Object> obj;
-    while (current->IsObject()) {
-        obj = current->ToObject();
-        if (obj->HasRealNamedProperty(property)) {
-            return scope.Close(obj->GetRealNamedProperty(property));
-        }
-        current = obj->GetPrototype();
+    Local<Value> rv = sandbox->GetRealNamedProperty(property);
+    if (rv.IsEmpty()) {
+        rv = info->global->GetRealNamedProperty(property);
     }
-    // Next, check the global object (things like Object, Array, etc).
-    // This needs to call GetRealNamedProperty or else we'll get stuck in
-    // an infinite loop here.
-    return info->global->GetRealNamedProperty(property);
+    return scope.Close(rv);
 }
 
 // Global variables get set back on the sandbox object.
@@ -240,8 +227,8 @@ static Handle<Integer> GlobalPropertyQuery(Local<String> property,
         return scope.Close(Handle<Integer>());
     }
     ContextifyInfo* info = static_cast<ContextifyInfo*>(unwrapped);
-    if (info->sandbox->HasRealNamedProperty(property) ||
-        info->global->HasRealNamedProperty(property)) {
+    if (!info->sandbox->GetRealNamedProperty(property).IsEmpty() ||
+        !info->global->GetRealNamedProperty(property).IsEmpty()) {
         return scope.Close(Integer::New(None));
     }
     return scope.Close(Handle<Integer>());
