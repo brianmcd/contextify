@@ -39,6 +39,16 @@ exports['basic tests'] = {
         test.done();
     },
 
+    'sandbox prototype properties should be searched' : function (test) {
+        var sandbox = {};
+        sandbox.__proto__ = {
+            prop1 : 'test'
+        };
+        Contextify(sandbox);
+        test.equal(sandbox.getGlobal().prop1, 'test');
+        test.done();
+    },
+
     // Make sure properties that aren't there...aren't there.
     'test for nonexistent properties' : function (test) {
         var global = Contextify({}).getGlobal();
