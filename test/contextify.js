@@ -58,8 +58,12 @@ exports['basic tests'] = {
     'test for "undefined" variables' : function (test) {
         var sandbox = { };
         Contextify(sandbox);
-        sandbox.run("var y; _y = y");
+        // In JavaScript a declared variable is set to 'undefined'.
+        sandbox.run("var y; (function() { var _y ; y = _y })()");
         test.equal(sandbox._y, undefined);
+        // This should apply to top-level variables (global properties).
+        sandbox.run("var z; _z = z");
+        test.equal(sandbox._z, undefined);
         test.done();
     },
 
