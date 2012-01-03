@@ -372,10 +372,12 @@ exports['test eval'] = {
         var sandbox = Contextify();
         sandbox.run('e = eval ; e("test1 = 1")');
         test.equal(sandbox.test1, 1);
-        sandbox.run('t = 1 ; (function() { var t = 2; test2 = eval("t") })()');
+        sandbox.run('var t = 1 ; (function() { var t = 2; test2 = eval("t") })()');
         test.equal(sandbox.test2, 2);
         sandbox.run('t = 1 ; (function() { var t = 2; e = eval; test3 = e("t") })()');
         test.equal(sandbox.test3, 1);
+        sandbox.run('var t = 1 ; global = this; (function() { var t = 2; e = eval; test4 = global.eval.call(global, "t") })()');
+        test.equal(sandbox.test4, 1);
         test.done();
     }
 };
