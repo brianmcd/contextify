@@ -12,6 +12,9 @@
         "url": "https://github.com/brianmcd/contextify.git"
     },
     "main": "./lib/contextify",
+    "scripts": {
+        "test": "nodeunit test/"
+    },
     "engines": {
         "node": ">=0.4.0"
     },
