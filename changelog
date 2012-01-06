@@ -1,3 +1,8 @@
+0.1.0
+    * Fix: #13 - Can't use global.eval as function.
+    * Added [Named|Indexed]SecurityCallbacks to global ObjectTemplate.
+    * No longer detaching the global proxy.
+    * Refactored to use node::ObjectWrap.
 0.0.7
     * Fix: #11 - Declared global variables treated as undefined
 
