@@ -3,6 +3,9 @@
     "version": "0.0.7",
     "description": "Turn an object into a persistent execution context.",
     "author": "Brian McDaniel <brianmcd05@gmail.com>",
+    "contributors": [ 
+        "Assaf Arkin <assaf@labnotes.org> (http://labnotes.org/)" 
+    ], 
     "keywords": ["context","vm"],
     "repository": {
         "type" : "git",
