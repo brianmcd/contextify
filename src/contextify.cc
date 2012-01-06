@@ -3,298 +3,216 @@
 using namespace v8;
 using namespace node;
 
-struct ContextifyInfo;
+// For some reason this needs to be out of the object or node won't load the
+// library.
+static Persistent<FunctionTemplate> dataWrapperTmpl;
+static Persistent<Function>         dataWrapperCtor;
 
-static Handle<Value> Wrap(const Arguments& args);
-static Handle<Value> Run(const Arguments& args);
-static Handle<Value> GetGlobal(const Arguments& args);
-static Persistent<Context> CreateContext(ContextifyInfo* info);
-
-// Interceptor functions for global object template.
-static Handle<Value> GlobalPropertyGetter(Local<String> property,
-                                          const AccessorInfo &accessInfo);
-static Handle<Value> GlobalPropertySetter(Local<String> property,
-                                          Local<Value> value,
-                                          const AccessorInfo &accessInfo);
-static Handle<Integer> GlobalPropertyQuery(Local<String> property,
-                                           const AccessorInfo &accessInfo);
-static Handle<Boolean> GlobalPropertyDeleter(Local<String> property,
-                                             const AccessorInfo &accessInfo);
-static Handle<Array> GlobalPropertyEnumerator(const AccessorInfo &accessInfo);
-
-// ContextifyInfo (and the context) will live until dispose() is called on
-// the sandbox or global.
-struct ContextifyInfo {
+class ContextifyContext : ObjectWrap {
+public:
     Persistent<Context> context;
-    Persistent<Object> sandbox;
-    Persistent<Object> realGlobal;
-    Persistent<Object> proxyGlobal;
+    Persistent<Object>  sandbox;
+    Persistent<Object>  proxyGlobal;
 
-    void SetContext(Persistent<Context> context) {
-        this->context = context;
+    static Persistent<FunctionTemplate> jsTmpl;
+
+    ContextifyContext(Local<Object> sbox) {
+        HandleScope scope;
+        sandbox = Persistent<Object>::New(sbox);
     }
 
-    void SetSandbox(Local<Object> sandbox) {
-        this->sandbox = Persistent<Object>::New(sandbox);
+    ~ContextifyContext() {
+        context.Dispose();
+        context.Clear();
+        proxyGlobal.Dispose();
+        proxyGlobal.Clear();
+        sandbox.Dispose();
+        sandbox.Clear();
+    }
+
+    // We override ObjectWrap::Wrap so that we can create our context after
+    // we have a reference to our "host" JavaScript object.  If we try to use
+    // handle_ in the ContextifyContext constructor, it will be empty since it's
+    // set in ObjectWrap::Wrap.
+    inline void Wrap(Handle<Object> handle) {
+        ObjectWrap::Wrap(handle);
+        context     = createV8Context();
+        proxyGlobal = Persistent<Object>::New(context->Global());
     }
     
-    void SetGlobal(Local<Object> proxy) {
-        this->proxyGlobal = Persistent<Object>::New(proxy);
-        this->realGlobal = Persistent<Object>::New(proxy->GetPrototype()->ToObject());
+    // This is an object that just keeps an internal pointer to this
+    // ContextifyContext.  It's passed to the NamedPropertyHandler.  If we
+    // pass the main JavaScript context object we're embedded in, then the
+    // NamedPropertyHandler will store a reference to it forever and keep it
+    // from getting gc'd.
+    Local<Object> createDataWrapper () {
+        HandleScope scope;
+        Local<Object> wrapper = dataWrapperCtor->NewInstance();
+        wrapper->SetPointerInInternalField(0, this);
+        return scope.Close(wrapper);
+    }
+
+    Persistent<Context> createV8Context() {
+        HandleScope scope;
+        Local<FunctionTemplate> ftmpl = FunctionTemplate::New();
+        ftmpl->SetHiddenPrototype(true);
+        ftmpl->SetClassName(sandbox->GetConstructorName());
+        Local<ObjectTemplate> otmpl = ftmpl->InstanceTemplate();
+        otmpl->SetNamedPropertyHandler(GlobalPropertyGetter,
+                                       GlobalPropertySetter,
+                                       GlobalPropertyQuery,
+                                       GlobalPropertyDeleter,
+                                       GlobalPropertyEnumerator,
+                                       createDataWrapper());
+        otmpl->SetAccessCheckCallbacks(GlobalPropertyNamedAccessCheck,
+                                       GlobalPropertyIndexedAccessCheck);
+        return Context::New(NULL, otmpl);
+    }
+
+    static void Init(Handle<Object> target) {
+        HandleScope scope;
+        dataWrapperTmpl = Persistent<FunctionTemplate>::New(FunctionTemplate::New());
+        dataWrapperTmpl->InstanceTemplate()->SetInternalFieldCount(1);
+        dataWrapperCtor = Persistent<Function>::New(dataWrapperTmpl->GetFunction());
+
+        jsTmpl = Persistent<FunctionTemplate>::New(FunctionTemplate::New(New));
+        jsTmpl->InstanceTemplate()->SetInternalFieldCount(1);
+        jsTmpl->SetClassName(String::NewSymbol("ContextifyContext"));
+
+        NODE_SET_PROTOTYPE_METHOD(jsTmpl, "run",       ContextifyContext::Run);
+        NODE_SET_PROTOTYPE_METHOD(jsTmpl, "getGlobal", ContextifyContext::GetGlobal);
+
+        target->Set(String::NewSymbol("ContextifyContext"), jsTmpl->GetFunction());
+    }
+
+    // args[0] = the sandbox object
+    static Handle<Value> New(const Arguments& args) {
+        HandleScope scope;
+        if (args.Length() < 1) {
+            Local<String> msg = String::New("Wrong number of arguments passed to ContextifyContext constructor");
+            return ThrowException(Exception::Error(msg));
+        }
+        if (!args[0]->IsObject()) {
+            Local<String> msg = String::New("Argument to ContextifyContext constructor must be an object.");
+            return ThrowException(Exception::Error(msg));
+        }
+        ContextifyContext* ctx = new ContextifyContext(args[0]->ToObject());
+        ctx->Wrap(args.This());
+        return args.This();
+    }
+
+    static Handle<Value> Run(const Arguments& args) {
+        HandleScope scope;
+        if (args.Length() == 0) {
+            Local<String> msg = String::New("Must supply at least 1 argument to run");
+            return ThrowException(Exception::Error(msg));
+        }
+        if (!args[0]->IsString()) {
+            Local<String> msg = String::New("First argument to run must be a String.");
+            return ThrowException(Exception::Error(msg));
+        }
+        ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(args.This());
+        Persistent<Context> context = ctx->context;
+        context->Enter();
+        Local<String> code = args[0]->ToString();
+        TryCatch trycatch;
+        Handle<Script> script;
+        if (args.Length() > 1 && args[1]->IsString()) {
+            script = Script::Compile(code, args[1]->ToString());
+        } else {
+            script = Script::Compile(code);
+        }
+        if (script.IsEmpty()) {
+          context->Exit();
+          return trycatch.ReThrow();
+        }
+        Handle<Value> result = script->Run();
+        context->Exit();
+        if (result.IsEmpty()) {
+            return trycatch.ReThrow();
+        }
+        return scope.Close(result);
+    }
+
+    static Handle<Value> GetGlobal(const Arguments& args) {
+        HandleScope scope;
+        ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(args.This());
+        return ctx->proxyGlobal;
+    }
+
+    static bool GlobalPropertyNamedAccessCheck(Local<Object> host,
+                                               Local<Value>  key,
+                                               AccessType    type,
+                                               Local<Value>  data) {
+        return true;
+    }
+
+    static bool GlobalPropertyIndexedAccessCheck(Local<Object> host,
+                                                 uint32_t      key,
+                                                 AccessType    type,
+                                                 Local<Value>  data) {
+        return true;
+    }
+
+    static Handle<Value> GlobalPropertyGetter (Local<String> property,
+                                               const AccessorInfo &accessInfo) {
+        HandleScope scope;
+        Local<Object> data = accessInfo.Data()->ToObject();
+        ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(data);
+        Local<Value> rv = ctx->sandbox->GetRealNamedProperty(property);
+        if (rv.IsEmpty()) {
+            rv = ctx->proxyGlobal->GetRealNamedProperty(property);
+        }
+        return scope.Close(rv);
+    }
+
+    static Handle<Value> GlobalPropertySetter (Local<String> property,
+                                               Local<Value> value,
+                                               const AccessorInfo &accessInfo) {
+        HandleScope scope;
+        Local<Object> data = accessInfo.Data()->ToObject();
+        ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(data);
+        bool success = ctx->sandbox->Set(property, value);
+        return scope.Close(value);
+    }
+
+    static Handle<Integer> GlobalPropertyQuery(Local<String> property,
+                                               const AccessorInfo &accessInfo) {
+        HandleScope scope;
+        Local<Object> data = accessInfo.Data()->ToObject();
+        ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(data);
+        if (!ctx->sandbox->GetRealNamedProperty(property).IsEmpty() ||
+            !ctx->proxyGlobal->GetRealNamedProperty(property).IsEmpty()) {
+            return scope.Close(Integer::New(None));
+        }
+        return scope.Close(Handle<Integer>());
+    }
+
+    static Handle<Boolean> GlobalPropertyDeleter(Local<String> property,
+                                                 const AccessorInfo &accessInfo) {
+        HandleScope scope;
+        Local<Object> data = accessInfo.Data()->ToObject();
+        ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(data);
+        bool success = ctx->sandbox->Delete(property);
+        if (!success) {
+            success = ctx->proxyGlobal->Delete(property);
+        }
+        return scope.Close(Boolean::New(success));
+    }
+
+    static Handle<Array> GlobalPropertyEnumerator(const AccessorInfo &accessInfo) {
+        HandleScope scope;
+        Local<Object> data = accessInfo.Data()->ToObject();
+        ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(data);
+        return scope.Close(ctx->sandbox->GetPropertyNames());
     }
 };
 
-// Dispose is attached to the sandbox as 'dispose'.  It must be called to
-// free the sandbox and context memory.  ContextifyInfo keeps a strong
-// persistent reference to the sandbox, so if this isn't called, the sandbox
-// and the context will both leak.
-static Handle<Value> Dispose(const Arguments& args) {
-    Local<Value> wrapped = args.This()->GetHiddenValue(String::New("info"));
-    void* unwrapped = External::Unwrap(wrapped);
-    if (unwrapped == NULL) {
-        return ThrowException(String::New("Called dispose() twice."));
-    }
-    ContextifyInfo* info = static_cast<ContextifyInfo*>(unwrapped);
-    info->sandbox->SetHiddenValue(String::New("info"), External::Wrap(NULL));
-    info->realGlobal->SetHiddenValue(String::New("info"), External::Wrap(NULL));
-    info->context.Dispose();
-    info->context.Clear();
-    info->realGlobal.Dispose();
-    info->realGlobal.Clear();
-    info->proxyGlobal.Dispose();
-    info->proxyGlobal.Clear();
-    info->sandbox->Delete(String::NewSymbol("run"));
-    info->sandbox->Delete(String::NewSymbol("getGlobal"));
-    info->sandbox->Delete(String::NewSymbol("dispose"));
-    // Note: this won't actually free the sandbox memory unless references from
-    // the JavaScript side are also dropped.
-    info->sandbox.Dispose();
-    info->sandbox.Clear();
-    delete info;
-    return Undefined();
-}
-
-// We only want to create 1 Function instance for each of these in this
-// context.  Was previously creating a new Function for each Contextified
-// object and causing a memory leak.
-Persistent<Function> runFunc;
-Persistent<Function> getGlobalFunc;
-Persistent<Function> disposeFunc;
-
-// args[0] = the sandbox object
-static Handle<Value> Wrap(const Arguments& args) {
-    HandleScope scope;
-    Local<Object> sandbox;
-    if ((args.Length() > 0) && (args[0]->IsObject())) {
-        sandbox = args[0]->ToObject();
-    } else {
-        sandbox = Object::New();
-    }
-    // info is cleaned up by itself when the sandbox gets GC'd.
-    ContextifyInfo* info = new ContextifyInfo();
-    info->SetSandbox(sandbox);
-    Persistent<Context> context = CreateContext(info);
-    info->SetContext(context);
-    info->SetGlobal(context->Global());
-
-    Local<Value> wrapped = External::Wrap(info);
-    sandbox->SetHiddenValue(String::New("info"), wrapped);
-    info->realGlobal->SetHiddenValue(String::New("info"), wrapped);
-
-    if (runFunc.IsEmpty()) {
-        Local<FunctionTemplate> runTmpl = FunctionTemplate::New(Run);
-        runFunc = Persistent<Function>::New(runTmpl->GetFunction());
-    }
-    sandbox->Set(String::NewSymbol("run"), runFunc);
-
-    if (getGlobalFunc.IsEmpty()) {
-        Local<FunctionTemplate> getGlobalTmpl = FunctionTemplate::New(GetGlobal);
-        getGlobalFunc = Persistent<Function>::New(getGlobalTmpl->GetFunction());
-    }
-    sandbox->Set(String::NewSymbol("getGlobal"), getGlobalFunc);
-
-    if (disposeFunc.IsEmpty()) {
-        Local<FunctionTemplate> disposeFuncTmpl = FunctionTemplate::New(Dispose);
-        disposeFunc = Persistent<Function>::New(disposeFuncTmpl->GetFunction());
-    }
-    sandbox->Set(String::NewSymbol("dispose"), disposeFunc);
-
-    return scope.Close(sandbox);
-}
-
-static bool GlobalPropertyNamedAccessCheck(Local<Object> host,
-                                           Local<Value> key,
-                                           AccessType type,
-                                           Local<Value> data) {
-    return true;
-}
-
-static bool GlobalPropertyIndexedAccessCheck(Local<Object> host,
-                                             uint32_t key,
-                                             AccessType type,
-                                             Local<Value> data) {
-    return true;
-}
-
-// Create a context whose global object uses the sandbox to lookup and set
-// properties.
-static Persistent<Context> CreateContext(ContextifyInfo* info) {
-    HandleScope scope;
-    // Set up the context's global object.
-    Local<FunctionTemplate> ftmpl = FunctionTemplate::New();
-    ftmpl->SetHiddenPrototype(true);
-    ftmpl->SetClassName(info->sandbox->GetConstructorName());
-    Local<ObjectTemplate> otmpl = ftmpl->InstanceTemplate();
-    otmpl->SetNamedPropertyHandler(GlobalPropertyGetter,
-                                   GlobalPropertySetter,
-                                   GlobalPropertyQuery,
-                                   GlobalPropertyDeleter,
-                                   GlobalPropertyEnumerator);
-    otmpl->SetAccessCheckCallbacks(GlobalPropertyNamedAccessCheck,
-                                   GlobalPropertyIndexedAccessCheck);
-    Persistent<Context> context = Context::New(NULL, otmpl);
-
-    return context;
-}
-
-/*
- * args[0] = String of code
- * args[1] = filename
- */
-static Handle<Value> Run(const Arguments& args) {
-    HandleScope scope;
-    Local<Value> wrapped = args.This()->GetHiddenValue(String::New("info"));
-    void* unwrapped = External::Unwrap(wrapped);
-    if (unwrapped == NULL) {
-        return ThrowException(String::New("Called run() after dispose()."));
-    }
-    ContextifyInfo* info = static_cast<ContextifyInfo*>(unwrapped);
-    Persistent<Context> context = info->context;
-    context->Enter();
-    Local<String> code = args[0]->ToString();
-    TryCatch trycatch;
-    Handle<Script> script;
-    if (args.Length() > 1) {
-        script = Script::Compile(code, args[1]->ToString());
-    } else {
-        script = Script::Compile(code);
-    }
-    if (script.IsEmpty()) {
-      context->Exit();
-      return trycatch.ReThrow();
-    }
-    Handle<Value> result = script->Run();
-    context->Exit();
-    if (result.IsEmpty()) {
-        return trycatch.ReThrow();
-    }
-    return scope.Close(result);
-}
-
-static Handle<Value> GetGlobal(const Arguments& args) {
-    HandleScope scope;
-    Local<Value> wrapped = args.This()->GetHiddenValue(String::New("info"));
-    void* unwrapped = External::Unwrap(wrapped);
-    if (unwrapped == NULL) {
-        return ThrowException(String::New("Called getGlobal() after dispose()."));
-    }
-    ContextifyInfo* info = static_cast<ContextifyInfo*>(unwrapped);
-    return scope.Close(info->proxyGlobal);
-}
-
-static Handle<Value> GlobalPropertyGetter (Local<String> property,
-                                           const AccessorInfo &accessInfo) {
-    HandleScope scope;
-    Local<Value> wrapped = accessInfo.This()->GetHiddenValue(String::New("info"));
-    void* unwrapped = External::Unwrap(wrapped);
-    if (unwrapped == NULL) {
-        return ThrowException(String::New("Called getGlobal() after dispose()."));
-    }
-    ContextifyInfo* info = static_cast<ContextifyInfo*>(unwrapped);
-    Persistent<Object> sandbox = info->sandbox;
-    Local<Value> rv = sandbox->GetRealNamedProperty(property);
-    if (rv.IsEmpty()) {
-        rv = info->proxyGlobal->GetRealNamedProperty(property);
-    }
-    return scope.Close(rv);
-}
-
-// Global variables get set back on the sandbox object.
-static Handle<Value> GlobalPropertySetter (Local<String> property,
-                                           Local<Value> value,
-                                           const AccessorInfo &accessInfo) {
-    HandleScope scope;
-    Local<Value> wrapped = accessInfo.This()->GetHiddenValue(String::New("info"));
-    void* unwrapped = External::Unwrap(wrapped);
-    if (unwrapped == NULL) {
-        return ThrowException(String::New("Tried to set a property on global after dispose()."));
-    }
-    ContextifyInfo* info = static_cast<ContextifyInfo*>(unwrapped);
-    Persistent<Object> sandbox = info->sandbox;
-    bool success = sandbox->Set(property, value);
-    return scope.Close(value);
-}
-
-static Handle<Integer> GlobalPropertyQuery(Local<String> property,
-                                           const AccessorInfo &accessInfo) {
-    HandleScope scope;
-    Local<Value> wrapped = accessInfo.This()->GetHiddenValue(String::New("info"));
-    void* unwrapped = External::Unwrap(wrapped);
-    if (unwrapped == NULL) {
-        ThrowException(String::New("Called getGlobal() after dispose()."));
-        return scope.Close(Handle<Integer>());
-    }
-    ContextifyInfo* info = static_cast<ContextifyInfo*>(unwrapped);
-    if (!info->sandbox->GetRealNamedProperty(property).IsEmpty() ||
-        !info->proxyGlobal->GetRealNamedProperty(property).IsEmpty()) {
-        return scope.Close(Integer::New(None));
-    }
-    return scope.Close(Handle<Integer>());
-}
-
-static Handle<Boolean> GlobalPropertyDeleter(Local<String> property,
-                                             const AccessorInfo &accessInfo) {
-    HandleScope scope;
-    Local<Value> wrapped = accessInfo.This()->GetHiddenValue(String::New("info"));
-    void* unwrapped = External::Unwrap(wrapped);
-    if (unwrapped == NULL) {
-        ThrowException(String::New("Tried to delete a property on global after dispose()."));
-        return False();
-    }
-    ContextifyInfo* info = static_cast<ContextifyInfo*>(unwrapped);
-    Persistent<Object> sandbox = info->sandbox;
-    bool success = sandbox->Delete(property);
-    if (!success) {
-        Persistent<Context> context = info->context;
-        success = info->proxyGlobal->Delete(property);
-    }
-    return scope.Close(Boolean::New(success));
-}
-
-static Handle<Array> GlobalPropertyEnumerator(const AccessorInfo &accessInfo) {
-    HandleScope scope;
-    Local<Value> wrapped = accessInfo.This()->GetHiddenValue(String::New("info"));
-    void* unwrapped = External::Unwrap(wrapped);
-    if (unwrapped == NULL) {
-        // We can't throw an exception because we have to return an Array,
-        // and ThrowException returns a value. Returning an empty Array is
-        // better than segfaulting.
-        return scope.Close(Array::New());
-    }
-    ContextifyInfo* info = static_cast<ContextifyInfo*>(unwrapped);
-    Persistent<Object> sandbox = info->sandbox;
-    return scope.Close(sandbox->GetPropertyNames());
-}
-
-// Export the C++ Wrap method as 'wrap' on the module.
-static void Init(Handle<Object> target) {
-    HandleScope scope;
-    NODE_SET_METHOD(target, "wrap", Wrap);
-}
+Persistent<FunctionTemplate> ContextifyContext::jsTmpl;
 
 extern "C" {
-  static void init(Handle<Object> target) {
-    Init(target);
-  }
-  NODE_MODULE(contextify, init);
-}
+    static void init(Handle<Object> target) {
+        ContextifyContext::Init(target);
+    }
+    NODE_MODULE(contextify, init);
+};
