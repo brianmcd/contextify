@@ -27,7 +27,8 @@ static Handle<Array> GlobalPropertyEnumerator(const AccessorInfo &accessInfo);
 struct ContextifyInfo {
     Persistent<Context> context;
     Persistent<Object> sandbox;
-    Persistent<Object> global;
+    Persistent<Object> realGlobal;
+    Persistent<Object> proxyGlobal;
 
     void SetContext(Persistent<Context> context) {
         this->context = context;
@@ -37,8 +38,9 @@ struct ContextifyInfo {
         this->sandbox = Persistent<Object>::New(sandbox);
     }
     
-    void SetGlobal(Local<Object> global) {
-        this->global = Persistent<Object>::New(global);
+    void SetGlobal(Local<Object> proxy) {
+        this->proxyGlobal = Persistent<Object>::New(proxy);
+        this->realGlobal = Persistent<Object>::New(proxy->GetPrototype()->ToObject());
     }
 };
 
@@ -54,11 +56,13 @@ static Handle<Value> Dispose(const Arguments& args) {
     }
     ContextifyInfo* info = static_cast<ContextifyInfo*>(unwrapped);
     info->sandbox->SetHiddenValue(String::New("info"), External::Wrap(NULL));
-    info->global->SetHiddenValue(String::New("info"), External::Wrap(NULL));
+    info->realGlobal->SetHiddenValue(String::New("info"), External::Wrap(NULL));
     info->context.Dispose();
     info->context.Clear();
-    info->global.Dispose();
-    info->global.Clear();
+    info->realGlobal.Dispose();
+    info->realGlobal.Clear();
+    info->proxyGlobal.Dispose();
+    info->proxyGlobal.Clear();
     info->sandbox->Delete(String::NewSymbol("run"));
     info->sandbox->Delete(String::NewSymbol("getGlobal"));
     info->sandbox->Delete(String::NewSymbol("dispose"));
@@ -95,7 +99,7 @@ static Handle<Value> Wrap(const Arguments& args) {
 
     Local<Value> wrapped = External::Wrap(info);
     sandbox->SetHiddenValue(String::New("info"), wrapped);
-    info->global->SetHiddenValue(String::New("info"), wrapped);
+    info->realGlobal->SetHiddenValue(String::New("info"), wrapped);
 
     if (runFunc.IsEmpty()) {
         Local<FunctionTemplate> runTmpl = FunctionTemplate::New(Run);
@@ -118,6 +122,20 @@ static Handle<Value> Wrap(const Arguments& args) {
     return scope.Close(sandbox);
 }
 
+static bool GlobalPropertyNamedAccessCheck(Local<Object> host,
+                                           Local<Value> key,
+                                           AccessType type,
+                                           Local<Value> data) {
+    return true;
+}
+
+static bool GlobalPropertyIndexedAccessCheck(Local<Object> host,
+                                             uint32_t key,
+                                             AccessType type,
+                                             Local<Value> data) {
+    return true;
+}
+
 // Create a context whose global object uses the sandbox to lookup and set
 // properties.
 static Persistent<Context> CreateContext(ContextifyInfo* info) {
@@ -132,10 +150,10 @@ static Persistent<Context> CreateContext(ContextifyInfo* info) {
                                    GlobalPropertyQuery,
                                    GlobalPropertyDeleter,
                                    GlobalPropertyEnumerator);
+    otmpl->SetAccessCheckCallbacks(GlobalPropertyNamedAccessCheck,
+                                   GlobalPropertyIndexedAccessCheck);
     Persistent<Context> context = Context::New(NULL, otmpl);
 
-    // Get rid of the proxy object.
-    context->DetachGlobal();
     return context;
 }
 
@@ -181,7 +199,7 @@ static Handle<Value> GetGlobal(const Arguments& args) {
         return ThrowException(String::New("Called getGlobal() after dispose()."));
     }
     ContextifyInfo* info = static_cast<ContextifyInfo*>(unwrapped);
-    return scope.Close(info->global);
+    return scope.Close(info->proxyGlobal);
 }
 
 static Handle<Value> GlobalPropertyGetter (Local<String> property,
@@ -196,7 +214,7 @@ static Handle<Value> GlobalPropertyGetter (Local<String> property,
     Persistent<Object> sandbox = info->sandbox;
     Local<Value> rv = sandbox->GetRealNamedProperty(property);
     if (rv.IsEmpty()) {
-        rv = info->global->GetRealNamedProperty(property);
+        rv = info->proxyGlobal->GetRealNamedProperty(property);
     }
     return scope.Close(rv);
 }
@@ -228,7 +246,7 @@ static Handle<Integer> GlobalPropertyQuery(Local<String> property,
     }
     ContextifyInfo* info = static_cast<ContextifyInfo*>(unwrapped);
     if (!info->sandbox->GetRealNamedProperty(property).IsEmpty() ||
-        !info->global->GetRealNamedProperty(property).IsEmpty()) {
+        !info->proxyGlobal->GetRealNamedProperty(property).IsEmpty()) {
         return scope.Close(Integer::New(None));
     }
     return scope.Close(Handle<Integer>());
@@ -248,7 +266,7 @@ static Handle<Boolean> GlobalPropertyDeleter(Local<String> property,
     bool success = sandbox->Delete(property);
     if (!success) {
         Persistent<Context> context = info->context;
-        success = info->global->Delete(property);
+        success = info->proxyGlobal->Delete(property);
     }
     return scope.Close(Boolean::New(success));
 }
