@@ -387,15 +387,18 @@ exports['test eval'] = {
 exports['test exceptions'] = {
     'basic test' : function (test) {
         var sandbox = Contextify();
+        // Exceptions thrown from "run" will be from the Contextified context.
+        var ReferenceError = sandbox.run('ReferenceError');
+        var SyntaxError    = sandbox.run('SyntaxError');
         test.throws(function () {
             sandbox.run('doh');
-        });
+        }, ReferenceError);
         test.throws(function () {
             sandbox.run('x = y');
-        });
+        }, ReferenceError);
         test.throws(function () {
             sandbox.run('function ( { (( }{);');
-        });
+        }, SyntaxError);
         test.done();
     },
 
