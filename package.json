@@ -1,31 +1,24 @@
 {
-  "author": "Brian McDaniel <brianmcd05@gmail.com>",
-  "name": "contextify",
-  "description": "Turn an object into a persistent execution context.",
-  "keywords": [
-    "context",
-    "vm"
-  ],
-  "version": "0.0.7",
-  "repository": {
-    "type" : "git",
-    "url": "https://github.com/brianmcd/contextify.git"
-  },
-  "main": "./lib/contextify.js",
-  "directories": {
-    "lib": "./lib"
-  },
-  "engines": {
-    "node": ">=0.4.0"
-  },
-  "licenses": [
-    {
-        "type" : "MIT",
-        "url" : "http://github.com/brianmcd/contextify/blob/master/LICENSE.txt"
+    "name": "contextify",
+    "version": "0.0.7",
+    "description": "Turn an object into a persistent execution context.",
+    "author": "Brian McDaniel <brianmcd05@gmail.com>",
+    "keywords": ["context","vm"],
+    "repository": {
+        "type" : "git",
+        "url": "https://github.com/brianmcd/contextify.git"
+    },
+    "main": "./lib/contextify",
+    "engines": {
+        "node": ">=0.4.0"
+    },
+    "licenses": [
+        {
+            "type" : "MIT",
+            "url" : "http://github.com/brianmcd/contextify/blob/master/LICENSE.txt"
+        }
+    ],
+    "devDependencies": {
+        "nodeunit" : ">=0.5.x"
     }
-  ],
-  "dependencies": {},
-  "devDependencies": {
-    "nodeunit" : ">=0.5.x"
-  }
 }
