@@ -124,11 +124,13 @@ public:
         }
         if (script.IsEmpty()) {
           context->Exit();
+          DisplayExceptionLine(trycatch);
           return trycatch.ReThrow();
         }
         Handle<Value> result = script->Run();
         context->Exit();
         if (result.IsEmpty()) {
+            DisplayExceptionLine(trycatch);
             return trycatch.ReThrow();
         }
         return scope.Close(result);
