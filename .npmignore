@@ -1,1 +1,7 @@
 Makefile
+.lock-wscript
+node_modules/
+build/
+*.swp
+*.swo
+TODO
