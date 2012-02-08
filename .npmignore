@@ -5,3 +5,8 @@ build/
 *.swp
 *.swo
 TODO
+Makefile.gyp
+*.Makefile
+*.target.gyp.mk
+gyp-mac-tool
+out/
