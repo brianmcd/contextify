@@ -174,7 +174,7 @@ public:
         HandleScope scope;
         Local<Object> data = accessInfo.Data()->ToObject();
         ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(data);
-        bool success = ctx->sandbox->Set(property, value);
+        ctx->sandbox->Set(property, value);
         return scope.Close(value);
     }
 
