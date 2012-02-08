@@ -3,10 +3,11 @@ all: build
 .PHONY: test clean
 
 clean:
-	node-waf distclean
+	node-gyp clean
 
-build: src/contextify.cc
-	node-waf distclean && node-waf configure build
+build: clean src/contextify.cc
+	node-gyp configure
+	node-gyp build
 
 test:
 	npm test
