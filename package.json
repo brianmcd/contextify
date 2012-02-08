@@ -24,6 +24,9 @@
             "url" : "http://github.com/brianmcd/contextify/blob/master/LICENSE.txt"
         }
     ],
+    "dependencies": {
+        "bindings : "*"
+    },
     "devDependencies": {
         "nodeunit" : ">=0.5.x"
     }
