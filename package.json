@@ -25,7 +25,7 @@
         }
     ],
     "dependencies": {
-        "bindings : "*"
+        "bindings" : "*"
     },
     "devDependencies": {
         "nodeunit" : ">=0.5.x"
