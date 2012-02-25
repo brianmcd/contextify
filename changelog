@@ -1,6 +1,7 @@
 0.1.1
-	* Add node-gyp build support (Nathan Rajlich)
-	* Fix build for OS X (stolen from einaros's work on ws :)).
+    * Add node-gyp build support (Nathan Rajlich)
+    * Fix build for OS X (stolen from einaros's work on ws :)).
+    * Better exception reporting (print error message and stack trace).
 0.1.0
     * Fix: #13 - Can't use global.eval as function.
     * Added [Named|Indexed]SecurityCallbacks to global ObjectTemplate.
