@@ -29,9 +29,9 @@ def configure(conf):
     if arch in arch_mappings:
       arch = arch_mappings[arch]
       flags += ['-arch', arch]
-    conf.env.append_value('CCFLAGS', flags)
-    conf.env.append_value('CXXFLAGS', flags)
-    conf.env.append_value('LINKFLAGS', flags)
+  conf.env.append_value('CCFLAGS', flags)
+  conf.env.append_value('CXXFLAGS', flags)
+  conf.env.append_value('LINKFLAGS', flags)
 
 def build(bld):
   obj = bld.new_task_gen("cxx", "shlib", "node_addon")
