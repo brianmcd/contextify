@@ -1,3 +1,6 @@
+0.1.2
+    * Renamed bindings.gyp to binding.gyp (Rex Morgan)
+    * More fixes for OS X build.
 0.1.1
     * Add node-gyp build support (Nathan Rajlich)
     * Fix build for OS X (stolen from einaros's work on ws :)).
