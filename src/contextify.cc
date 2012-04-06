@@ -92,10 +92,10 @@ public:
             Local<String> msg = String::New("Wrong number of arguments passed to ContextifyContext constructor");
             return ThrowException(Exception::Error(msg));
         }
-        if (!args[0]->IsObject()) {
-            Local<String> msg = String::New("Argument to ContextifyContext constructor must be an object.");
-            return ThrowException(Exception::Error(msg));
-        }
+        //if (!args[0]->IsObject()) {
+        //    Local<String> msg = String::New("Argument to ContextifyContext constructor must be an object.");
+        //    return ThrowException(Exception::Error(msg));
+        //}
         ContextifyContext* ctx = new ContextifyContext(args[0]->ToObject());
         ctx->Wrap(args.This());
         return args.This();
@@ -161,9 +161,9 @@ public:
         HandleScope scope;
         Local<Object> data = accessInfo.Data()->ToObject();
         ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(data);
-        Local<Value> rv = ctx->sandbox->GetRealNamedProperty(property);
+        Local<Value> rv = ctx->sandbox->Get(property);
         if (rv.IsEmpty()) {
-            rv = ctx->proxyGlobal->GetRealNamedProperty(property);
+            rv = ctx->proxyGlobal->Get(property);
         }
         return scope.Close(rv);
     }
@@ -183,8 +183,8 @@ public:
         HandleScope scope;
         Local<Object> data = accessInfo.Data()->ToObject();
         ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(data);
-        if (!ctx->sandbox->GetRealNamedProperty(property).IsEmpty() ||
-            !ctx->proxyGlobal->GetRealNamedProperty(property).IsEmpty()) {
+        if (!ctx->sandbox->Has(property) ||
+            !ctx->proxyGlobal->Has(property)) {
             return scope.Close(Integer::New(None));
         }
         return scope.Close(Handle<Integer>());
