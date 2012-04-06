@@ -92,11 +92,12 @@ public:
             Local<String> msg = String::New("Wrong number of arguments passed to ContextifyContext constructor");
             return ThrowException(Exception::Error(msg));
         }
-        if (!args[0]->IsSpecObject()) {
+        Local<Object> sandbox = args[0]->ToObject();
+        if (sandbox->IsNull() || sandbox->IsUndefined()) {
             Local<String> msg = String::New("Argument to ContextifyContext constructor must be an object.");
             return ThrowException(Exception::Error(msg));
         }
-        ContextifyContext* ctx = new ContextifyContext(args[0]->ToObject());
+        ContextifyContext* ctx = new ContextifyContext(sandbox);
         ctx->Wrap(args.This());
         return args.This();
     }
