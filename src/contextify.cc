@@ -162,9 +162,11 @@ public:
         HandleScope scope;
         Local<Object> data = accessInfo.Data()->ToObject();
         ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(data);
-        Local<Value> rv = ctx->sandbox->Get(property);
-        if (rv.IsEmpty()) {
-            rv = ctx->proxyGlobal->Get(property);
+        Local<Value> rv;
+        if (ctx->sandbox->Has(property)) {
+            rv = ctx->sandbox->Get(property);
+        } else {
+            rv = ctx->proxyGlobal->GetRealNamedProperty(property);
         }
         return scope.Close(rv);
     }
@@ -184,8 +186,8 @@ public:
         HandleScope scope;
         Local<Object> data = accessInfo.Data()->ToObject();
         ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(data);
-        if (!ctx->sandbox->Has(property) ||
-            !ctx->proxyGlobal->Has(property)) {
+        if (ctx->sandbox->Has(property) ||
+            !ctx->proxyGlobal->GetRealNamedProperty(property).IsEmpty()) {
             return scope.Close(Integer::New(None));
         }
         return scope.Close(Handle<Integer>());
