@@ -97,7 +97,7 @@ public:
             return ThrowException(Exception::Error(msg));
         }
         ContextifyContext* ctx = new ContextifyContext(args[0]->ToObject());
-        ctx->Wrap(args.This());
+        ctx->Wrap(args.Handle());
         return args.This();
     }
 
