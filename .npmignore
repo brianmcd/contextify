@@ -1,7 +1,7 @@
 Makefile
 .lock-wscript
-node_modules/
-build/
+node_modules
+build
 *.swp
 *.swo
 TODO
@@ -9,4 +9,4 @@ Makefile.gyp
 *.Makefile
 *.target.gyp.mk
 gyp-mac-tool
-out/
+out

@@ -124,13 +124,11 @@ public:
         }
         if (script.IsEmpty()) {
           context->Exit();
-          PrintException(trycatch);
           return trycatch.ReThrow();
         }
         Handle<Value> result = script->Run();
         context->Exit();
         if (result.IsEmpty()) {
-            PrintException(trycatch);
             return trycatch.ReThrow();
         }
         return scope.Close(result);
@@ -207,49 +205,6 @@ public:
         Local<Object> data = accessInfo.Data()->ToObject();
         ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(data);
         return scope.Close(ctx->sandbox->GetPropertyNames());
-    }
-
-    // Mostly taken from d8 shell.
-    static void PrintException(TryCatch &try_catch) {
-        HandleScope handle_scope;
-        String::Utf8Value exception(try_catch.Exception());
-        const char* exception_string = ToCString(exception);
-        Handle<v8::Message> message = try_catch.Message();
-        if (message.IsEmpty()) {
-            // V8 didn't provide any extra information about this error; just
-            // print the exception.
-            fprintf(stderr, "%s\n", exception_string);
-        } else {
-            // Print (filename):(line number): (message).
-            String::Utf8Value filename(message->GetScriptResourceName());
-            const char* filename_string = ToCString(filename);
-            int linenum = message->GetLineNumber();
-            fprintf(stderr, "%s:%i: %s\n", filename_string, linenum, exception_string);
-            // Print line of source code.
-            String::Utf8Value sourceline(message->GetSourceLine());
-            const char* sourceline_string = ToCString(sourceline);
-            fprintf(stderr, "%s\n", sourceline_string);
-            // Print wavy underline (GetUnderline is deprecated).
-            int start = message->GetStartColumn();
-            for (int i = 0; i < start; i++) {
-                fprintf(stderr, " ");
-            }
-            int end = message->GetEndColumn();
-            for (int i = start; i < end; i++) {
-                fprintf(stderr, "^");
-            }
-            fprintf(stderr, "\n");
-            String::Utf8Value stack_trace(try_catch.StackTrace());
-            if (stack_trace.length() > 0) {
-                const char* stack_trace_string = ToCString(stack_trace);
-                fprintf(stderr, "%s\n", stack_trace_string);
-            }
-        }
-    }
-
-    // Extracts a C string from a V8 Utf8Value.
-    static const char* ToCString(const String::Utf8Value& value) {
-        return *value ? *value : "<string conversion failed>";
     }
 };
 
