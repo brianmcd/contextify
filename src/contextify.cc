@@ -134,6 +134,10 @@ public:
         return scope.Close(result);
     }
 
+    static bool InstanceOf(Handle<Value> value) {
+      return !value.IsEmpty() && jsTmpl->HasInstance(value);
+    }
+
     static Handle<Value> GetGlobal(const Arguments& args) {
         HandleScope scope;
         ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(args.This());
@@ -208,11 +212,96 @@ public:
     }
 };
 
+class ContextifyScript : ObjectWrap {
+public:
+    static Persistent<FunctionTemplate> scriptTmpl;
+    Persistent<Script> script;
+
+    static void Init(Handle<Object> target) {
+        HandleScope scope;
+        scriptTmpl = Persistent<FunctionTemplate>::New(FunctionTemplate::New(New));
+        scriptTmpl->InstanceTemplate()->SetInternalFieldCount(1);
+        scriptTmpl->SetClassName(String::NewSymbol("ContextifyScript"));
+
+        NODE_SET_PROTOTYPE_METHOD(scriptTmpl, "runInContext", RunInContext);
+
+        target->Set(String::NewSymbol("ContextifyScript"),
+                    scriptTmpl->GetFunction());
+    }
+
+    static Handle<Value> New(const Arguments& args) {
+      HandleScope scope;
+
+      ContextifyScript *contextify_script = new ContextifyScript();
+      contextify_script->Wrap(args.Holder());
+
+      if (args.Length() < 1) {
+        return ThrowException(Exception::TypeError(
+              String::New("needs at least 'code' argument.")));
+      }
+
+      Local<String> code = args[0]->ToString();
+      Local<String> filename = args.Length() > 1
+                               ? args[1]->ToString()
+                               : String::New("ContextifyScript.<anonymous>");
+
+      Handle<Context> context = Context::GetCurrent();
+      Context::Scope context_scope(context);
+
+      // Catch errors
+      TryCatch trycatch;
+
+      Handle<Script> v8_script = Script::New(code, filename);
+
+      if (v8_script.IsEmpty()) {
+        return trycatch.ReThrow();
+      }
+
+      contextify_script->script = Persistent<Script>::New(v8_script);
+
+      return args.This();
+    }
+
+    static Handle<Value> RunInContext(const Arguments& args) {
+        HandleScope scope;
+        if (args.Length() == 0) {
+            Local<String> msg = String::New("Must supply at least 1 argument to runInContext");
+            return ThrowException(Exception::Error(msg));
+        }
+        if (!ContextifyContext::InstanceOf(args[0]->ToObject())) {
+            Local<String> msg = String::New("First argument must be a ContextifyContext.");
+            return ThrowException(Exception::TypeError(msg));
+        }
+        ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(args[0]->ToObject());
+        Persistent<Context> context = ctx->context;
+        context->Enter();
+        ContextifyScript* wrapped_script = ObjectWrap::Unwrap<ContextifyScript>(args.This());
+        Handle<Script> script = wrapped_script->script;
+        TryCatch trycatch;
+        if (script.IsEmpty()) {
+          context->Exit();
+          return trycatch.ReThrow();
+        }
+        Handle<Value> result = script->Run();
+        context->Exit();
+        if (result.IsEmpty()) {
+            return trycatch.ReThrow();
+        }
+        return scope.Close(result);
+    }
+
+    ~ContextifyScript() {
+        script.Dispose();
+    }
+};
+
 Persistent<FunctionTemplate> ContextifyContext::jsTmpl;
+Persistent<FunctionTemplate> ContextifyScript::scriptTmpl;
 
 extern "C" {
     static void init(Handle<Object> target) {
         ContextifyContext::Init(target);
+        ContextifyScript::Init(target);
     }
     NODE_MODULE(contextify, init);
 };
