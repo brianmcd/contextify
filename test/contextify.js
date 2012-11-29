@@ -22,12 +22,32 @@ exports['basic tests'] = {
         test.done();
     },
 
+    'basic createContext' : function (test) {
+        var sandbox = {
+            prop1: 'prop1',
+            prop2: 'prop2'
+        };
+        var context = Contextify.createContext(sandbox);
+        test.equal(sandbox.prop1, 'prop1');
+        test.equal(sandbox.prop2, 'prop2');
+        test.done();
+    },
+
     // Ensure that the correct properties exist on a wrapped sandbox.
     'test contextified object extra properties' : function (test) {
         var sandbox = Contextify({});
         test.notEqual(sandbox.run, undefined);
         test.notEqual(sandbox.getGlobal, undefined);
         test.notEqual(sandbox.dispose, undefined);
+        test.done();
+    },
+
+    'createContext should not modify the sandbox' : function (test) {
+        var sandbox = {};
+        Contextify.createContext(sandbox);
+        test.equal(sandbox.run, undefined);
+        test.equal(sandbox.getGlobal, undefined);
+        test.equal(sandbox.dispose, undefined);
         test.done();
     },
 
@@ -65,6 +85,14 @@ exports['basic tests'] = {
         test.done();
     },
 
+    'test for "undefined" properties with createContext' : function (test) {
+        var sandbox = { x: undefined };
+        var context = Contextify.createContext(sandbox);
+        context.run("_x = x");
+        test.equal(sandbox._x, undefined);
+        test.done();
+    },
+
     'test for "undefined" variables' : function (test) {
         var sandbox = { };
         Contextify(sandbox);
@@ -84,6 +112,15 @@ exports['basic tests'] = {
     'test run with filename' : function (test) {
         var sandbox = Contextify();
         sandbox.run('var x = 3', "test.js");
+        test.equal(sandbox.x, 3);
+        test.done();
+    },
+
+    // Make sure run can be called on a context
+    'test run with createContext' : function (test) {
+        var sandbox = {};
+        var context = Contextify.createContext(sandbox);
+        context.run('var x = 3', "test.js");
         test.equal(sandbox.x, 3);
         test.done();
     },
@@ -182,6 +219,28 @@ exports['asynchronous script tests'] = {
         };
         Contextify(sandbox);
         sandbox.run("setTimeout(function () {" +
+                    "test1 = (prop1 == 'prop1');" +
+                    "test2 = (prop2 == 'prop2');" +
+                    "}, 0)");
+        test.equal(sandbox.test1, undefined);
+        test.equal(sandbox.test2, undefined);
+        setTimeout(function () {
+            test.ok(sandbox.test1);
+            test.ok(sandbox.test2);
+            test.done();
+        }, 0);
+    },
+
+    // Asynchronous context script execution:
+    // Ensure that sandbox properties can be accessed as global variables.
+    'createContext: sandbox properties should be globals' : function (test) {
+        var sandbox = {
+            setTimeout : setTimeout,
+            prop1 : 'prop1',
+            prop2 : 'prop2'
+        };
+        var context = Contextify.createContext(sandbox);
+        context.run("setTimeout(function () {" +
                     "test1 = (prop1 == 'prop1');" +
                     "test2 = (prop2 == 'prop2');" +
                     "}, 0)");
@@ -301,7 +360,7 @@ exports['test global'] = {
         test.equal(global.x, 5);
         test.done();
     },
-    
+
     // Make sure global can be a receiver for getGlobal().
     'test global.getGlobal()' : function (test) {
         var global = Contextify().getGlobal();
@@ -436,7 +495,7 @@ exports['test exceptions'] = {
         }, 'Called dispose() twice.');
         test.done();
     },
-   
+
     'test run() after dispose()' : function (test) {
         var sandbox = Contextify();
         test.doesNotThrow(function () {
@@ -456,6 +515,39 @@ exports['test exceptions'] = {
         test.throws(function () {
             var g = sandbox.getGlobal();
         }, 'Called getGlobal() after dispose().');
+        test.done();
+    }
+};
+
+exports['test scripts'] = {
+    'test createScript()' : function (test) {
+        var script = Contextify.createScript('var x = 3', 'test.js');
+        test.equal(typeof script.runInContext, 'function');
+        test.done();
+    },
+
+    'test createScript() without code' : function (test) {
+        test.throws(function () {
+            Contextify.createScript();
+        });
+        test.throws(function () {
+            Contextify.createScript(true);
+        });
+        test.throws(function () {
+            Contextify.createScript(null);
+        });
+        test.throws(function () {
+            Contextify.createScript(1);
+        });
+        test.done();
+    },
+
+    'test runInContext' : function (test) {
+        var sandbox = {};
+        var script = Contextify.createScript('var x = 3', 'test.js');
+        var context = Contextify.createContext(sandbox);
+        script.runInContext(context);
+        test.equal(sandbox.x, 3);
         test.done();
     }
 };
