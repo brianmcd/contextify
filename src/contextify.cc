@@ -1,4 +1,5 @@
 #include "node.h"
+#include "node_version.h"
 #include <string>
 using namespace v8;
 using namespace node;
@@ -48,7 +49,11 @@ public:
     Local<Object> createDataWrapper () {
         HandleScope scope;
         Local<Object> wrapper = dataWrapperCtor->NewInstance();
+#if NODE_MAJOR_VERSION > 0 || NODE_MINOR_VERSION > 9 || (NODE_MINOR_VERSION >= 9 && NODE_PATCH_VERSION >= 6)
+        wrapper->SetAlignedPointerInInternalField(0, this);
+#else
         wrapper->SetPointerInInternalField(0, this);
+#endif
         return scope.Close(wrapper);
     }
 
