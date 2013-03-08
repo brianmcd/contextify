@@ -1,6 +1,7 @@
 # Contextify
 
-For Windows issues, see here: https://github.com/brianmcd/contextify/wiki/Windows-Installation-Guide . Please add to the wiki if you find new issues/solutions.
+For Windows issues, see here: https://github.com/brianmcd/contextify/wiki/Windows-Installation-Guide
+Please add to the wiki if you find new issues/solutions.
 
 Turn an object into a V8 execution context.  A contextified object acts as the global 'this' when executing scripts in its context.  Contextify adds 3 methods to the contextified object: run(code, filename), getGlobal(), and dispose().  The main difference between Contextify and Node's vm methods is that Contextify allows asynchronous functions to continue executing in the Contextified object's context.  See vm vs. Contextify below for more discussion.
 
