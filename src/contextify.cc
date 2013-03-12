@@ -49,7 +49,7 @@ public:
     Local<Object> createDataWrapper () {
         HandleScope scope;
         Local<Object> wrapper = dataWrapperCtor->NewInstance();
-#if NODE_MAJOR_VERSION > 0 || NODE_MINOR_VERSION > 9 || (NODE_MINOR_VERSION >= 9 && NODE_PATCH_VERSION >= 6)
+#if NODE_MAJOR_VERSION > 0 || (NODE_MINOR_VERSION == 9 && (NODE_PATCH_VERSION >= 6 && NODE_PATCH_VERSION <= 10))
         wrapper->SetAlignedPointerInInternalField(0, this);
 #else
         wrapper->SetPointerInInternalField(0, this);
