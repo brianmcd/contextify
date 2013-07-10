@@ -19,10 +19,10 @@ public:
 
     ContextifyContext(Local<Object> sbox) {
         HandleScope scope;
-        #if NODE_MODULE_VERSION < 12
-            sandbox = Persistent<Object>::New(sbox);
-        #else
+        #if NODE_VERSION_AT_LEAST(0, 11, 3)
             sandbox = Persistent<Object>::New(Isolate::GetCurrent(), sbox);
+        #else
+            sandbox = Persistent<Object>::New(sbox);
         #endif
     }
 
@@ -42,10 +42,10 @@ public:
     inline void Wrap(Handle<Object> handle) {
         ObjectWrap::Wrap(handle);
         context     = createV8Context();
-        #if NODE_MODULE_VERSION < 12
-            proxyGlobal = Persistent<Object>::New(context->Global());
-        #else
+        #if NODE_VERSION_AT_LEAST(0, 11, 3)
             proxyGlobal = Persistent<Object>::New(Isolate::GetCurrent(), context->Global());
+        #else
+            proxyGlobal = Persistent<Object>::New(context->Global());
         #endif
     }
     
@@ -79,31 +79,31 @@ public:
                                        createDataWrapper());
         otmpl->SetAccessCheckCallbacks(GlobalPropertyNamedAccessCheck,
                                        GlobalPropertyIndexedAccessCheck);
-        #if NODE_MODULE_VERSION < 12
-            return Context::New(NULL, otmpl);
-        #else
+        #if NODE_VERSION_AT_LEAST(0, 11, 3)
             return Persistent<Context>::New(Isolate::GetCurrent(), Context::New(Isolate::GetCurrent(), NULL, otmpl));
+        #else
+            return Context::New(NULL, otmpl);
         #endif
     }
 
     static void Init(Handle<Object> target) {
         HandleScope scope;
-        #if NODE_MODULE_VERSION < 12
-            dataWrapperTmpl = Persistent<FunctionTemplate>::New(FunctionTemplate::New());
-        #else
+        #if NODE_VERSION_AT_LEAST(0, 11, 3)
             dataWrapperTmpl = Persistent<FunctionTemplate>::New(Isolate::GetCurrent(), FunctionTemplate::New());
+        #else
+            dataWrapperTmpl = Persistent<FunctionTemplate>::New(FunctionTemplate::New());
         #endif
         dataWrapperTmpl->InstanceTemplate()->SetInternalFieldCount(1);
-        #if NODE_MODULE_VERSION < 12
-            dataWrapperCtor = Persistent<Function>::New(dataWrapperTmpl->GetFunction());
-        #else
+        #if NODE_VERSION_AT_LEAST(0, 11, 3)
             dataWrapperCtor = Persistent<Function>::New(Isolate::GetCurrent(), dataWrapperTmpl->GetFunction());
+        #else
+            dataWrapperCtor = Persistent<Function>::New(dataWrapperTmpl->GetFunction());
         #endif
 
-        #if NODE_MODULE_VERSION < 12
-            jsTmpl = Persistent<FunctionTemplate>::New(FunctionTemplate::New(New));
-        #else
+        #if NODE_VERSION_AT_LEAST(0, 11, 3)
             jsTmpl = Persistent<FunctionTemplate>::New(Isolate::GetCurrent(), FunctionTemplate::New(New));
+        #else
+            jsTmpl = Persistent<FunctionTemplate>::New(FunctionTemplate::New(New));
         #endif
         jsTmpl->InstanceTemplate()->SetInternalFieldCount(1);
         jsTmpl->SetClassName(String::NewSymbol("ContextifyContext"));
@@ -248,10 +248,10 @@ public:
 
     static void Init(Handle<Object> target) {
         HandleScope scope;
-        #if NODE_MODULE_VERSION < 12
-            scriptTmpl = Persistent<FunctionTemplate>::New(FunctionTemplate::New(New));
-        #else
+        #if NODE_VERSION_AT_LEAST(0, 11, 3)
             scriptTmpl = Persistent<FunctionTemplate>::New(Isolate::GetCurrent(), FunctionTemplate::New(New));
+        #else
+            scriptTmpl = Persistent<FunctionTemplate>::New(FunctionTemplate::New(New));
         #endif
         scriptTmpl->InstanceTemplate()->SetInternalFieldCount(1);
         scriptTmpl->SetClassName(String::NewSymbol("ContextifyScript"));
@@ -290,10 +290,10 @@ public:
         return trycatch.ReThrow();
       }
 
-      #if NODE_MODULE_VERSION < 12
-          contextify_script->script = Persistent<Script>::New(v8_script);
-      #else
+      #if NODE_VERSION_AT_LEAST(0, 11, 3)
           contextify_script->script = Persistent<Script>::New(Isolate::GetCurrent(), v8_script);
+      #else
+          contextify_script->script = Persistent<Script>::New(v8_script);
       #endif
 
       return args.This();
