@@ -19,7 +19,7 @@ public:
 
     ContextifyContext(Local<Object> sbox) {
         HandleScope scope;
-        sandbox = Persistent<Object>::New(sbox);
+        sandbox = Persistent<Object>::New(Isolate::GetCurrent(), sbox);
     }
 
     ~ContextifyContext() {
@@ -38,7 +38,7 @@ public:
     inline void Wrap(Handle<Object> handle) {
         ObjectWrap::Wrap(handle);
         context     = createV8Context();
-        proxyGlobal = Persistent<Object>::New(context->Global());
+        proxyGlobal = Persistent<Object>::New(Isolate::GetCurrent(), context->Global());
     }
     
     // This is an object that just keeps an internal pointer to this
@@ -71,16 +71,16 @@ public:
                                        createDataWrapper());
         otmpl->SetAccessCheckCallbacks(GlobalPropertyNamedAccessCheck,
                                        GlobalPropertyIndexedAccessCheck);
-        return Context::New(NULL, otmpl);
+        return Persistent<Context>::New(Isolate::GetCurrent(), Context::New(Isolate::GetCurrent(), NULL, otmpl));
     }
 
     static void Init(Handle<Object> target) {
         HandleScope scope;
-        dataWrapperTmpl = Persistent<FunctionTemplate>::New(FunctionTemplate::New());
+        dataWrapperTmpl = Persistent<FunctionTemplate>::New(Isolate::GetCurrent(), FunctionTemplate::New());
         dataWrapperTmpl->InstanceTemplate()->SetInternalFieldCount(1);
-        dataWrapperCtor = Persistent<Function>::New(dataWrapperTmpl->GetFunction());
+        dataWrapperCtor = Persistent<Function>::New(Isolate::GetCurrent(), dataWrapperTmpl->GetFunction());
 
-        jsTmpl = Persistent<FunctionTemplate>::New(FunctionTemplate::New(New));
+        jsTmpl = Persistent<FunctionTemplate>::New(Isolate::GetCurrent(), FunctionTemplate::New(New));
         jsTmpl->InstanceTemplate()->SetInternalFieldCount(1);
         jsTmpl->SetClassName(String::NewSymbol("ContextifyContext"));
 
@@ -224,7 +224,7 @@ public:
 
     static void Init(Handle<Object> target) {
         HandleScope scope;
-        scriptTmpl = Persistent<FunctionTemplate>::New(FunctionTemplate::New(New));
+        scriptTmpl = Persistent<FunctionTemplate>::New(Isolate::GetCurrent(), FunctionTemplate::New(New));
         scriptTmpl->InstanceTemplate()->SetInternalFieldCount(1);
         scriptTmpl->SetClassName(String::NewSymbol("ContextifyScript"));
 
@@ -262,7 +262,7 @@ public:
         return trycatch.ReThrow();
       }
 
-      contextify_script->script = Persistent<Script>::New(v8_script);
+      contextify_script->script = Persistent<Script>::New(Isolate::GetCurrent(), v8_script);
 
       return args.This();
     }
