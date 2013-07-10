@@ -19,7 +19,11 @@ public:
 
     ContextifyContext(Local<Object> sbox) {
         HandleScope scope;
-        sandbox = Persistent<Object>::New(sbox);
+        #if NODE_VERSION_AT_LEAST(0, 11, 3)
+            sandbox = Persistent<Object>::New(Isolate::GetCurrent(), sbox);
+        #else
+            sandbox = Persistent<Object>::New(sbox);
+        #endif
     }
 
     ~ContextifyContext() {
@@ -38,7 +42,11 @@ public:
     inline void Wrap(Handle<Object> handle) {
         ObjectWrap::Wrap(handle);
         context     = createV8Context();
-        proxyGlobal = Persistent<Object>::New(context->Global());
+        #if NODE_VERSION_AT_LEAST(0, 11, 3)
+            proxyGlobal = Persistent<Object>::New(Isolate::GetCurrent(), context->Global());
+        #else
+            proxyGlobal = Persistent<Object>::New(context->Global());
+        #endif
     }
     
     // This is an object that just keeps an internal pointer to this
@@ -71,16 +79,32 @@ public:
                                        createDataWrapper());
         otmpl->SetAccessCheckCallbacks(GlobalPropertyNamedAccessCheck,
                                        GlobalPropertyIndexedAccessCheck);
-        return Context::New(NULL, otmpl);
+        #if NODE_VERSION_AT_LEAST(0, 11, 3)
+            return Persistent<Context>::New(Isolate::GetCurrent(), Context::New(Isolate::GetCurrent(), NULL, otmpl));
+        #else
+            return Context::New(NULL, otmpl);
+        #endif
     }
 
     static void Init(Handle<Object> target) {
         HandleScope scope;
-        dataWrapperTmpl = Persistent<FunctionTemplate>::New(FunctionTemplate::New());
+        #if NODE_VERSION_AT_LEAST(0, 11, 3)
+            dataWrapperTmpl = Persistent<FunctionTemplate>::New(Isolate::GetCurrent(), FunctionTemplate::New());
+        #else
+            dataWrapperTmpl = Persistent<FunctionTemplate>::New(FunctionTemplate::New());
+        #endif
         dataWrapperTmpl->InstanceTemplate()->SetInternalFieldCount(1);
-        dataWrapperCtor = Persistent<Function>::New(dataWrapperTmpl->GetFunction());
+        #if NODE_VERSION_AT_LEAST(0, 11, 3)
+            dataWrapperCtor = Persistent<Function>::New(Isolate::GetCurrent(), dataWrapperTmpl->GetFunction());
+        #else
+            dataWrapperCtor = Persistent<Function>::New(dataWrapperTmpl->GetFunction());
+        #endif
 
-        jsTmpl = Persistent<FunctionTemplate>::New(FunctionTemplate::New(New));
+        #if NODE_VERSION_AT_LEAST(0, 11, 3)
+            jsTmpl = Persistent<FunctionTemplate>::New(Isolate::GetCurrent(), FunctionTemplate::New(New));
+        #else
+            jsTmpl = Persistent<FunctionTemplate>::New(FunctionTemplate::New(New));
+        #endif
         jsTmpl->InstanceTemplate()->SetInternalFieldCount(1);
         jsTmpl->SetClassName(String::NewSymbol("ContextifyContext"));
 
@@ -224,7 +248,11 @@ public:
 
     static void Init(Handle<Object> target) {
         HandleScope scope;
-        scriptTmpl = Persistent<FunctionTemplate>::New(FunctionTemplate::New(New));
+        #if NODE_VERSION_AT_LEAST(0, 11, 3)
+            scriptTmpl = Persistent<FunctionTemplate>::New(Isolate::GetCurrent(), FunctionTemplate::New(New));
+        #else
+            scriptTmpl = Persistent<FunctionTemplate>::New(FunctionTemplate::New(New));
+        #endif
         scriptTmpl->InstanceTemplate()->SetInternalFieldCount(1);
         scriptTmpl->SetClassName(String::NewSymbol("ContextifyScript"));
 
@@ -262,7 +290,11 @@ public:
         return trycatch.ReThrow();
       }
 
-      contextify_script->script = Persistent<Script>::New(v8_script);
+      #if NODE_VERSION_AT_LEAST(0, 11, 3)
+          contextify_script->script = Persistent<Script>::New(Isolate::GetCurrent(), v8_script);
+      #else
+          contextify_script->script = Persistent<Script>::New(v8_script);
+      #endif
 
       return args.This();
     }
