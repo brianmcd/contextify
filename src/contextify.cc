@@ -96,7 +96,7 @@ public:
         target->Set(String::NewSymbol("ContextifyContext"), ljsTmpl->GetFunction());
     }
 
-    // args[0] = the sandbox object
+    // info[0] = the sandbox object
     template<class T> static void New(const v8::FunctionCallbackInfo<T>& info) {
         Isolate *isolate = Isolate::GetCurrent();
         HandleScope scope(isolate);
