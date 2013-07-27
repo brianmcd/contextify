@@ -51,11 +51,7 @@ public:
     Local<Object> createDataWrapper () {
         NanScope();
         Local<Object> wrapper = NanPersistentToLocal(dataWrapperCtor)->NewInstance();
-#if NODE_MAJOR_VERSION > 0 || (NODE_MINOR_VERSION == 9 && (NODE_PATCH_VERSION >= 6 && NODE_PATCH_VERSION <= 10)) || NODE_MINOR_VERSION >= 11
-        wrapper->SetAlignedPointerInInternalField(0, this);
-#else
-        wrapper->SetPointerInInternalField(0, this);
-#endif
+        NanSetInternalFieldPointer(wrapper, 0, this);
         return scope.Close(wrapper);
     }
 
