@@ -207,9 +207,6 @@ public:
         Local<Object> data = args.Data()->ToObject();
         ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(data);
         bool success = NanPersistentToLocal(ctx->sandbox)->Delete(property);
-        if (!success) {
-            success = NanPersistentToLocal(ctx->proxyGlobal)->Delete(property);
-        }
         NanReturnValue(Boolean::New(success));
     }
 
