@@ -10,7 +10,7 @@ using namespace node;
 static Persistent<FunctionTemplate> dataWrapperTmpl;
 static Persistent<Function>         dataWrapperCtor;
 
-class ContextifyContext : ObjectWrap {
+class ContextifyContext : public ObjectWrap {
 public:
     Persistent<Context> context;
     Persistent<Object>  sandbox;
@@ -221,7 +221,7 @@ public:
     }
 };
 
-class ContextifyScript : ObjectWrap {
+class ContextifyScript : public ObjectWrap {
 public:
     static Persistent<FunctionTemplate> scriptTmpl;
     Persistent<Script> script;
