@@ -73,12 +73,12 @@ public:
 
     static void Init(Handle<Object> target) {
         NanScope();
-        Local<FunctionTemplate> tmpl = Local<FunctionTemplate>::New(FunctionTemplate::New());
+        Local<FunctionTemplate> tmpl = NanNewLocal<FunctionTemplate>(FunctionTemplate::New());
         tmpl->InstanceTemplate()->SetInternalFieldCount(1);
         NanAssignPersistent(FunctionTemplate, dataWrapperTmpl, tmpl);
         NanAssignPersistent(Function, dataWrapperCtor, tmpl->GetFunction());
 
-        Local<FunctionTemplate> ljsTmpl = Local<FunctionTemplate>::New(FunctionTemplate::New(New));
+        Local<FunctionTemplate> ljsTmpl = NanNewLocal<FunctionTemplate>(FunctionTemplate::New(New));
         ljsTmpl->InstanceTemplate()->SetInternalFieldCount(1);
         ljsTmpl->SetClassName(String::NewSymbol("ContextifyContext"));
         NODE_SET_PROTOTYPE_METHOD(ljsTmpl, "run",       ContextifyContext::Run);
@@ -225,7 +225,7 @@ public:
 
     static void Init(Handle<Object> target) {
         NanScope();
-        Local<FunctionTemplate> lscriptTmpl = Local<FunctionTemplate>::New(FunctionTemplate::New(New));
+        Local<FunctionTemplate> lscriptTmpl = NanNewLocal<FunctionTemplate>(FunctionTemplate::New(New));
         lscriptTmpl->InstanceTemplate()->SetInternalFieldCount(1);
         lscriptTmpl->SetClassName(String::NewSymbol("ContextifyScript"));
 
