@@ -25,7 +25,8 @@
         }
     ],
     "dependencies": {
-        "bindings" : "*"
+        "bindings" : "*",
+	"nan" : "~0.6.0"
     },
     "devDependencies": {
         "nodeunit" : ">=0.5.x"

@@ -10,7 +10,7 @@ using namespace node;
 static Persistent<FunctionTemplate> dataWrapperTmpl;
 static Persistent<Function>         dataWrapperCtor;
 
-class ContextifyContext : ObjectWrap {
+class ContextifyContext : public ObjectWrap {
 public:
     Persistent<Context> context;
     Persistent<Object>  sandbox;
@@ -73,12 +73,12 @@ public:
 
     static void Init(Handle<Object> target) {
         NanScope();
-        Local<FunctionTemplate> tmpl = Local<FunctionTemplate>::New(FunctionTemplate::New());
+        Local<FunctionTemplate> tmpl = NanNewLocal<FunctionTemplate>(FunctionTemplate::New());
         tmpl->InstanceTemplate()->SetInternalFieldCount(1);
         NanAssignPersistent(FunctionTemplate, dataWrapperTmpl, tmpl);
         NanAssignPersistent(Function, dataWrapperCtor, tmpl->GetFunction());
 
-        Local<FunctionTemplate> ljsTmpl = Local<FunctionTemplate>::New(FunctionTemplate::New(New));
+        Local<FunctionTemplate> ljsTmpl = NanNewLocal<FunctionTemplate>(FunctionTemplate::New(New));
         ljsTmpl->InstanceTemplate()->SetInternalFieldCount(1);
         ljsTmpl->SetClassName(String::NewSymbol("ContextifyContext"));
         NODE_SET_PROTOTYPE_METHOD(ljsTmpl, "run",       ContextifyContext::Run);
@@ -207,9 +207,6 @@ public:
         Local<Object> data = args.Data()->ToObject();
         ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(data);
         bool success = NanPersistentToLocal(ctx->sandbox)->Delete(property);
-        if (!success) {
-            success = NanPersistentToLocal(ctx->proxyGlobal)->Delete(property);
-        }
         NanReturnValue(Boolean::New(success));
     }
 
@@ -221,14 +218,14 @@ public:
     }
 };
 
-class ContextifyScript : ObjectWrap {
+class ContextifyScript : public ObjectWrap {
 public:
     static Persistent<FunctionTemplate> scriptTmpl;
     Persistent<Script> script;
 
     static void Init(Handle<Object> target) {
         NanScope();
-        Local<FunctionTemplate> lscriptTmpl = Local<FunctionTemplate>::New(FunctionTemplate::New(New));
+        Local<FunctionTemplate> lscriptTmpl = NanNewLocal<FunctionTemplate>(FunctionTemplate::New(New));
         lscriptTmpl->InstanceTemplate()->SetInternalFieldCount(1);
         lscriptTmpl->SetClassName(String::NewSymbol("ContextifyScript"));
 
