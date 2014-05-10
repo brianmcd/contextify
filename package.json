@@ -4,7 +4,14 @@
     "description": "Turn an object into a persistent execution context.",
     "author": "Brian McDaniel <brianmcd05@gmail.com>",
     "contributors": [ 
-        "Assaf Arkin <assaf@labnotes.org> (http://labnotes.org/)" 
+        "Assaf Arkin <assaf@labnotes.org> (http://labnotes.org/)" ,
+        "Benjamin Byholm (https://research.it.abo.fi/people/bbyholm)",
+        "Marshall Roch <marshall@mroch.com>",
+        "Nathan Rajlich <nathan@tootallnate.net> (http://n8.io)",
+        "Paul Tan (https://github.com/pyokagan)",
+        "Jeremy Stashewsky <jstash@gmail.com>",
+        "Rex Morgan (http://www.rexflex.net/)",
+        "Tom Gallacher <me@tomg.co> (http://tomg.co)"
     ], 
     "keywords": ["context","vm"],
     "repository": {
