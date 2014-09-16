@@ -113,9 +113,7 @@ public:
             NanReturnUndefined();
         }
         ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(args.This());
-        Persistent<Context> context;
         Local<Context> lcontext = NanNew(ctx->context);
-        NanAssignPersistent(context, lcontext);
         lcontext->Enter();
         Local<String> code = args[0]->ToString();
 
@@ -278,8 +276,6 @@ public:
 
         ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(args[0]->ToObject());
         Local<Context> lcontext = NanNew(ctx->context);
-        Persistent<Context> context;
-        NanAssignPersistent(context, lcontext);
         lcontext->Enter();
         ContextifyScript* wrapped_script = ObjectWrap::Unwrap<ContextifyScript>(args.This());
         Local<NanUnboundScript> script = NanNew(wrapped_script->script);
