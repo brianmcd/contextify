@@ -254,7 +254,7 @@ exports['asynchronous script tests'] = {
     },
 
     // Asynchronous context script execution:
-    // Ensure that async execution is killed after dispose
+    // Ensure that async execution is safely executed after dispose
     'setTimeout should not fail after dispose' : function (test) {
         var sandbox = {
             test: test,
