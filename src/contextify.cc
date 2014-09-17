@@ -27,6 +27,11 @@ public:
         NanDisposePersistent(context);
         NanDisposePersistent(proxyGlobal);
         NanDisposePersistent(sandbox);
+
+        // Provide a GC hint that the context has gone away. Without this call it
+        // does not seem that the collector will touch the context until under extreme
+        // stress.
+        v8::V8::ContextDisposedNotification();
     }
 
     // We override ObjectWrap::Wrap so that we can create our context after
