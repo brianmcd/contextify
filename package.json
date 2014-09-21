@@ -1,6 +1,6 @@
 {
     "name": "contextify",
-    "version": "0.1.8",
+    "version": "0.1.9",
     "description": "Turn an object into a persistent execution context.",
     "author": "Brian McDaniel <brianmcd05@gmail.com>",
     "contributors": [ 
@@ -11,7 +11,8 @@
         "Paul Tan (https://github.com/pyokagan)",
         "Jeremy Stashewsky <jstash@gmail.com>",
         "Rex Morgan (http://www.rexflex.net/)",
-        "Tom Gallacher <me@tomg.co> (http://tomg.co)"
+        "Tom Gallacher <me@tomg.co> (http://tomg.co)",
+        "Kevin Decker <kpdecker@gmail.com> (http://www.incaseofstairs.com)"
     ], 
     "keywords": ["context","vm"],
     "repository": {
