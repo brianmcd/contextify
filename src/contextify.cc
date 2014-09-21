@@ -82,12 +82,12 @@ public:
 
         Local<FunctionTemplate> ljsTmpl = NanNew<FunctionTemplate>(New);
         ljsTmpl->InstanceTemplate()->SetInternalFieldCount(1);
-        ljsTmpl->SetClassName(NanSymbol("ContextifyContext"));
+        ljsTmpl->SetClassName(NanNew("ContextifyContext"));
         NODE_SET_PROTOTYPE_METHOD(ljsTmpl, "run",       ContextifyContext::Run);
         NODE_SET_PROTOTYPE_METHOD(ljsTmpl, "getGlobal", ContextifyContext::GetGlobal);
 
         NanAssignPersistent(jsTmpl, ljsTmpl);
-        target->Set(NanSymbol("ContextifyContext"), ljsTmpl->GetFunction());
+        target->Set(NanNew("ContextifyContext"), ljsTmpl->GetFunction());
     }
 
     static NAN_METHOD(New) {
@@ -227,12 +227,12 @@ public:
         NanScope();
         Local<FunctionTemplate> lscriptTmpl = NanNew<FunctionTemplate>(New);
         lscriptTmpl->InstanceTemplate()->SetInternalFieldCount(1);
-        lscriptTmpl->SetClassName(NanSymbol("ContextifyScript"));
+        lscriptTmpl->SetClassName(NanNew("ContextifyScript"));
 
         NODE_SET_PROTOTYPE_METHOD(lscriptTmpl, "runInContext", RunInContext);
 
         NanAssignPersistent(scriptTmpl, lscriptTmpl);
-        target->Set(NanSymbol("ContextifyScript"),
+        target->Set(NanNew("ContextifyScript"),
                     lscriptTmpl->GetFunction());
     }
     static NAN_METHOD(New) {

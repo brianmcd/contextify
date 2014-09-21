@@ -33,7 +33,7 @@
     ],
     "dependencies": {
         "bindings" : "*",
-        "nan" : "~1.0.0"
+        "nan" : "~1.3.0"
     },
     "devDependencies": {
         "nodeunit" : ">=0.5.x"
