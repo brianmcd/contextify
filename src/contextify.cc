@@ -18,12 +18,16 @@ public:
 
     static Persistent<FunctionTemplate> jsTmpl;
 
+    void* alive;
+
     ContextifyContext(Local<Object> sbox) {
         NanScope();
+        this->alive = this;
         NanAssignPersistent(sandbox, sbox);
     }
 
     ~ContextifyContext() {
+        this->alive = NULL;
         NanDisposePersistent(context);
         NanDisposePersistent(proxyGlobal);
         NanDisposePersistent(sandbox);
@@ -174,10 +178,21 @@ public:
     static NAN_PROPERTY_GETTER(GlobalPropertyGetter) {
         NanScope();
         Local<Object> data = args.Data()->ToObject();
-        ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(data);
-        Local<Value> rv = NanNew(ctx->sandbox)->GetRealNamedProperty(property);
+        Local<ContextifyContext> ctx = ObjectWrap::Unwrap<ContextifyContext>(data);
+        if (!*ctx || ctx->alive != *ctx)
+            NanReturnUndefined();
+
+        Local<Object> sandbox = NanNew(ctx->sandbox);
+        if (!*sandbox)
+            NanReturnUndefined();
+
+        Local<Value> rv = sandbox->GetRealNamedProperty(property);
         if (rv.IsEmpty()) {
-            rv = NanNew(ctx->proxyGlobal)->GetRealNamedProperty(property);
+            Local<Object> proxyGlobal = NanNew(ctx->proxyGlobal);
+            if (!*proxyGlobal)
+                NanReturnUndefined();
+
+            rv = proxyGlobal->GetRealNamedProperty(property);
         }
         NanReturnValue(rv);
     }
