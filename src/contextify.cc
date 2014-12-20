@@ -135,7 +135,7 @@ public:
 
     static Local<Context> createV8Context(Handle<Object> jsContextify) {
         NanEscapableScope();
-        Local<Object> wrapper = constructor->NewInstance();
+        Local<Object> wrapper = NanNew(constructor)->NewInstance();
 
         ContextWrap *contextWrapper = new ContextWrap();
         contextWrapper->Wrap(wrapper);

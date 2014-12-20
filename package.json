@@ -1,6 +1,6 @@
 {
     "name": "contextify",
-    "version": "0.1.10",
+    "version": "0.1.11",
     "description": "Turn an object into a persistent execution context.",
     "author": "Brian McDaniel <brianmcd05@gmail.com>",
     "contributors": [ 
