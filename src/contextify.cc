@@ -28,7 +28,15 @@ public:
         // Provide a GC hint that the context has gone away. Without this call it
         // does not seem that the collector will touch the context until under extreme
         // stress.
+          
+        // Also provide support for v8 3.29 indicated by
+        // (forked) node = v0.13.x used by atom-shell
+
+        #if NODE_MINOR_VERSION == 13
+        Isolate::GetCurrent()->ContextDisposedNotification();
+        #else
         v8::V8::ContextDisposedNotification();
+        #endif
     }
 
     // We override ObjectWrap::Wrap so that we can create our context after
