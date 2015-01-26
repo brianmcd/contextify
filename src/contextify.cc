@@ -28,7 +28,11 @@ public:
         // Provide a GC hint that the context has gone away. Without this call it
         // does not seem that the collector will touch the context until under extreme
         // stress.
+#if NODE_VERSION_AT_LEAST(0, 11, 15)
+        v8::Isolate::GetCurrent()->ContextDisposedNotification();
+#else
         v8::V8::ContextDisposedNotification();
+#endif
     }
 
     // We override ObjectWrap::Wrap so that we can create our context after
