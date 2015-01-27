@@ -1,3 +1,5 @@
+0.1.12
+    * Fix build for newer V8s (Andrew Paprocki - @apaprocki)
 0.1.11
     * Fix build error on node 0.11 (Sergei Ianovich - @yanovich)
 0.1.10
