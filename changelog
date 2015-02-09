@@ -1,3 +1,5 @@
+0.1.13
+    * Bump NAN to ~1.5.0 (Trygve Lie - @trygve-lie)
 0.1.12
     * Fix build for newer V8s (Andrew Paprocki - @apaprocki)
 0.1.11
