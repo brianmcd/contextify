@@ -114,7 +114,7 @@ public:
     static NAN_METHOD(GetGlobal) {
         NanScope();
         ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(args.This());
-        NanReturnValue(ctx->proxyGlobal);
+        NanReturnValue(NanNew(ctx->proxyGlobal));
     }
 };
 
