@@ -1,45 +1,48 @@
 {
-    "name": "contextify",
-    "version": "0.1.14",
-    "description": "Turn an object into a persistent execution context.",
-    "author": "Brian McDaniel <brianmcd05@gmail.com>",
-    "contributors": [ 
-        "Assaf Arkin <assaf@labnotes.org> (http://labnotes.org/)" ,
-        "Benjamin Byholm (https://research.it.abo.fi/people/bbyholm)",
-        "Marshall Roch <marshall@mroch.com>",
-        "Nathan Rajlich <nathan@tootallnate.net> (http://n8.io)",
-        "Paul Tan (https://github.com/pyokagan)",
-        "Jeremy Stashewsky <jstash@gmail.com>",
-        "Rex Morgan (http://www.rexflex.net/)",
-        "Tom Gallacher <me@tomg.co> (http://tomg.co)",
-        "Kevin Decker <kpdecker@gmail.com> (http://www.incaseofstairs.com)",
-        "Sergei Ianovich (https://github.com/yanovich)",
-        "Andrew Paprocki (https://github.com/apaprocki)",
-        "Trygve Lie (https://github.com/trygve-lie)"
-    ], 
-    "keywords": ["context","vm"],
-    "repository": {
-        "type" : "git",
-        "url": "https://github.com/brianmcd/contextify.git"
-    },
-    "main": "./lib/contextify",
-    "scripts": {
-        "test": "nodeunit test/"
-    },
-    "engines": {
-        "node": ">=0.4.0"
-    },
-    "licenses": [
-        {
-            "type" : "MIT",
-            "url" : "http://github.com/brianmcd/contextify/blob/master/LICENSE.txt"
-        }
-    ],
-    "dependencies": {
-        "bindings" : "*",
-        "nan" : "~1.8.4"
-    },
-    "devDependencies": {
-        "nodeunit" : ">=0.5.x"
+  "name": "contextify",
+  "version": "0.1.14",
+  "description": "Turn an object into a persistent execution context.",
+  "author": "Brian McDaniel <brianmcd05@gmail.com>",
+  "contributors": [
+    "Assaf Arkin <assaf@labnotes.org> (http://labnotes.org/)",
+    "Benjamin Byholm (https://research.it.abo.fi/people/bbyholm)",
+    "Marshall Roch <marshall@mroch.com>",
+    "Nathan Rajlich <nathan@tootallnate.net> (http://n8.io)",
+    "Paul Tan (https://github.com/pyokagan)",
+    "Jeremy Stashewsky <jstash@gmail.com>",
+    "Rex Morgan (http://www.rexflex.net/)",
+    "Tom Gallacher <me@tomg.co> (http://tomg.co)",
+    "Kevin Decker <kpdecker@gmail.com> (http://www.incaseofstairs.com)",
+    "Sergei Ianovich (https://github.com/yanovich)",
+    "Andrew Paprocki (https://github.com/apaprocki)",
+    "Trygve Lie (https://github.com/trygve-lie)"
+  ],
+  "keywords": [
+    "context",
+    "vm"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brianmcd/contextify.git"
+  },
+  "main": "./lib/contextify",
+  "scripts": {
+    "test": "nodeunit test/"
+  },
+  "engines": {
+    "node": ">=4.0.0"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "http://github.com/brianmcd/contextify/blob/master/LICENSE.txt"
     }
+  ],
+  "dependencies": {
+    "bindings": "*",
+    "nan": "^2.1.0"
+  },
+  "devDependencies": {
+    "nodeunit": ">=0.5.x"
+  }
 }
