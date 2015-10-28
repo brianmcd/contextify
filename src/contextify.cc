@@ -87,7 +87,7 @@ public:
         Local<String> code = info[0]->ToString();
 
         TryCatch trycatch;
-        MaybeLocal<Nan::BoundScript> script;
+        Nan::MaybeLocal<Nan::BoundScript> script;
 
         if (info.Length() > 1 && info[1]->IsString()) {
             ScriptOrigin origin(info[1]->ToString());
@@ -97,14 +97,14 @@ public:
         }
 
         if (script.IsEmpty()) {
-            info.GetReturnValue().Set(trycatch.ReThrow());
+            trycatch.ReThrow();
             return;
         }
 
-        MaybeLocal<Value> result = Nan::RunScript(script.ToLocalChecked());
+        Nan::MaybeLocal<Value> result = Nan::RunScript(script.ToLocalChecked());
 
         if (result.IsEmpty()) {
-            info.GetReturnValue().Set(trycatch.ReThrow());
+            trycatch.ReThrow();
         } else {
             info.GetReturnValue().Set(result.ToLocalChecked());
         }
@@ -309,12 +309,12 @@ public:
 
         TryCatch trycatch;
 
-        MaybeLocal<String> filename = info.Length() > 1
+        Nan::MaybeLocal<String> filename = info.Length() > 1
                                ? info[1]->ToString()
                                : Nan::New("ContextifyScript.<anonymous>");
 
         if (filename.IsEmpty()) {
-            info.GetReturnValue().Set(trycatch.ReThrow());
+            trycatch.ReThrow();
             return;
         }
 
@@ -322,10 +322,10 @@ public:
         Context::Scope context_scope(context);
 
         ScriptOrigin origin(filename.ToLocalChecked());
-        MaybeLocal<Nan::UnboundScript> v8_script = Nan::New<Nan::UnboundScript>(code, origin);
+        Nan::MaybeLocal<Nan::UnboundScript> v8_script = Nan::New<Nan::UnboundScript>(code, origin);
 
         if (v8_script.IsEmpty()) {
-            info.GetReturnValue().Set(trycatch.ReThrow());
+            trycatch.ReThrow();
             return;
         }
 
@@ -352,19 +352,19 @@ public:
         Context::Scope scope(lcontext);
 
         ContextifyScript* wrapped_script = ObjectWrap::Unwrap<ContextifyScript>(info.This());
-        MaybeLocal<Nan::UnboundScript> script = Nan::New(wrapped_script->script);
+        Nan::MaybeLocal<Nan::UnboundScript> script = Nan::New(wrapped_script->script);
 
         TryCatch trycatch;
 
         if (script.IsEmpty()) {
-            info.GetReturnValue().Set(trycatch.ReThrow());
+            trycatch.ReThrow();
             return;
         }
 
-        MaybeLocal<Value> result = Nan::RunScript(script.ToLocalChecked());
+        Nan::MaybeLocal<Value> result = Nan::RunScript(script.ToLocalChecked());
 
         if (result.IsEmpty()) {
-            info.GetReturnValue().Set(trycatch.ReThrow());
+            trycatch.ReThrow();
         } else {
             info.GetReturnValue().Set(result.ToLocalChecked());
         }
