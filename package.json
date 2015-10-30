@@ -27,7 +27,7 @@
         "test": "nodeunit test/"
     },
     "engines": {
-        "node": ">=0.4.0"
+        "node": ">=0.12.7"
     },
     "licenses": [
         {
@@ -37,7 +37,7 @@
     ],
     "dependencies": {
         "bindings" : "*",
-        "nan" : "~1.8.4"
+        "nan" : "^2.1.0"
     },
     "devDependencies": {
         "nodeunit" : ">=0.5.x"
