@@ -1,598 +1,560 @@
-var Contextify = require('../lib/contextify.js');
+'use strict';
+const Contextify = require('../lib/contextify.js');
+const chai = require('chai');
+const sinon = require('sinon');
+const sinonChai = require('sinon-chai');
+const expect = chai.expect;
+chai.use(sinonChai);
 
-exports['basic tests'] = {
-    // Creating a context shouldn't fail.
-    'blank context' : function (test) {
-        var ctx = Contextify({});
-        test.notEqual(ctx, null);
-        test.notEqual(ctx, undefined);
-        test.done();
-    },
+describe('Contextify', () => {
+    it('shouldn\'t fail with a blank context', () => {
+        const ctx = Contextify({});
 
-    // Creating a context with sandbox shouldn't change existing sandbox
-    // properties.
-    'basic context' : function (test) {
-        var sandbox = {
+        expect(ctx).not.to.be.null;
+        expect(ctx).not.to.be.undefined;
+    });
+
+    it('shouldn\'t change existing sandbox properties', () => {
+        const sandbox = {
             prop1 : 'prop1',
             prop2 : 'prop2'
         };
+
         Contextify(sandbox);
-        test.equal(sandbox.prop1, 'prop1');
-        test.equal(sandbox.prop2, 'prop2');
-        test.done();
-    },
+        expect(sandbox.prop1).to.equal('prop1');
+        expect(sandbox.prop2).to.equal('prop2');
+    });
 
-    'basic createContext' : function (test) {
-        var sandbox = {
-            prop1: 'prop1',
-            prop2: 'prop2'
-        };
-        var context = Contextify.createContext(sandbox);
-        test.equal(sandbox.prop1, 'prop1');
-        test.equal(sandbox.prop2, 'prop2');
-        test.done();
-    },
+    it('should create extra functions on sandbox object', () => {
+        const sandbox = Contextify({});
 
-    // Ensure that the correct properties exist on a wrapped sandbox.
-    'test contextified object extra properties' : function (test) {
-        var sandbox = Contextify({});
-        test.notEqual(sandbox.run, undefined);
-        test.notEqual(sandbox.getGlobal, undefined);
-        test.notEqual(sandbox.dispose, undefined);
-        test.done();
-    },
+        expect(sandbox.run).not.to.be.undefined;
+        expect(sandbox.getGlobal).not.to.be.undefined;
+        expect(sandbox.dispose).not.to.be.undefined;
+    });
 
-    'createContext should not modify the sandbox' : function (test) {
-        var sandbox = {};
-        Contextify.createContext(sandbox);
-        test.equal(sandbox.run, undefined);
-        test.equal(sandbox.getGlobal, undefined);
-        test.equal(sandbox.dispose, undefined);
-        test.done();
-    },
+    it('should create an empty context if passed undefined', () => {
+        expect(Contextify(undefined, undefined)).not.to.be.undefined;
+        expect(Contextify()).not.to.be.undefined;
+    });
 
-    // Passing undefined should create an empty context.
-    'test undefined sandbox' : function (test) {
-        // Should return an empty object.
-        test.notEqual(Contextify(undefined, undefined), undefined);
-        test.notEqual(Contextify(), undefined);
-        test.done();
-    },
-
-    'sandbox prototype properties should be searched' : function (test) {
-        var sandbox = {};
+    it('should search sandbox prototype properties', () => {
+        const sandbox = {};
         sandbox.__proto__ = {
             prop1 : 'test'
         };
+
         Contextify(sandbox);
-        test.equal(sandbox.getGlobal().prop1, 'test');
-        test.done();
-    },
+        expect(sandbox.getGlobal().prop1).to.equal('test');
+    });
 
-    // Make sure properties that aren't there...aren't there.
-    'test for nonexistent properties' : function (test) {
-        var global = Contextify({}).getGlobal();
-        test.equal(global.test1, undefined);
-        test.done();
-    },
+    it('should handle nonexistent properties', () => {
+        const global = Contextify({}).getGlobal();
 
-    // Make sure properties with value "undefined" are there.
-    'test for "undefined" properties' : function (test) {
-        var sandbox = { x: undefined };
+        expect(global.test1).to.be.undefined;
+    });
+
+    it('should support properties with the value of "undefined"', () => {
+        const sandbox = { x: undefined };
         Contextify(sandbox);
         sandbox.run("_x = x");
-        test.equal(sandbox._x, undefined);
-        test.done();
-    },
 
-    'test for "undefined" properties with createContext' : function (test) {
-        var sandbox = { x: undefined };
-        var context = Contextify.createContext(sandbox);
-        context.run("_x = x");
-        test.equal(sandbox._x, undefined);
-        test.done();
-    },
+        expect(sandbox._x).to.be.undefined;
+    });
 
-    'test for "undefined" variables' : function (test) {
-        var sandbox = { };
+    it('should support "undefined" variables', () => {
+        var sandbox = {};
         Contextify(sandbox);
         // In JavaScript a declared variable is set to 'undefined'.
         sandbox.run("var y; (function() { var _y ; y = _y })()");
-        test.equal(sandbox._y, undefined);
+        expect(sandbox._y).to.be.undefined;
+
         // This should apply to top-level variables (global properties).
         sandbox.run("var z; _z = z");
-        test.equal(sandbox._z, undefined);
+        expect(sandbox._z).to.be.undefined;
+
         // Make sure nothing wacky happens when accessing global declared but
         // undefined variables.
-        test.equal(sandbox.getGlobal().z, undefined);
-        test.done();
-    },
+        expect(sandbox.getGlobal().z).to.be.undefined;
+    });
 
-    // Make sure run can be called with a filename parameter.
-    'test run with filename' : function (test) {
-        var sandbox = Contextify();
-        sandbox.run('var x = 3', "test.js");
-        test.equal(sandbox.x, 3);
-        test.done();
-    },
+    it('should support run with filename', () => {
+        const sandbox = Contextify();
+        sandbox.run('var x = 3', 'test.js');
 
-    // Make sure run can be called on a context
-    'test run with createContext' : function (test) {
-        var sandbox = {};
-        var context = Contextify.createContext(sandbox);
-        context.run('var x = 3', "test.js");
-        test.equal(sandbox.x, 3);
-        test.done();
-    },
+        expect(sandbox.x).to.equal(3);
+    });
 
-    // Make sure getters/setters on the sandbox object are used.
-    'test accessors on sandbox' : function (test) {
-        var sandbox = {};
+    it('should support accessors on sandbox', () => {
+        const sandbox = {};
         sandbox.__defineGetter__('test', function () { return 3;});
         sandbox.__defineSetter__('test2', function (val) { this.x = val;});
         Contextify(sandbox);
-        var global = sandbox.getGlobal();
-        test.equal(global.test, 3);
+        const global = sandbox.getGlobal();
+
+        expect(global.test).to.equal(3);
+
         sandbox.test2 = 5;
-        test.equal(sandbox.x, 5);
+        expect(sandbox.x).to.equal(5);
+
         global.test2 = 7;
-        test.equal(global.x, 7);
-        test.equal(sandbox.x, 7);
-        test.done();
-    },
+        expect(global.x).to.equal(7);
+        expect(sandbox.x).to.equal(7);
+    });
 
-    // Make sure dispose cleans up the sandbox.
-    'test dispose' : function (test) {
-        var sandbox = Contextify();
-        test.notEqual(sandbox.run, undefined);
-        test.notEqual(sandbox.getGlobal, undefined);
-        test.notEqual(sandbox.dispose, undefined);
+    it('should clean up the sandbox', () => {
+        const sandbox = Contextify();
+
+        expect(sandbox.run).not.to.be.undefined;
+        expect(sandbox.getGlobal).not.to.be.undefined;
+        expect(sandbox.dispose).not.to.be.undefined;
+
         sandbox.dispose();
-        test.throws(function () {
-            sandbox.run();
-        }, Error);
-        test.throws(function () {
-            sandbox.getGlobal();
-        }, Error);
-        test.throws(function () {
-            sandbox.dispose();
-        }, Error);
-        test.done();
-    }
-};
 
-exports['synchronous script tests'] = {
-    // Synchronous context script execution:
-    // Ensure that global variables are put on the sandbox object.
-    'global variables in scripts should go on sandbox' : function (test) {
-        var sandbox = {
-            prop1 : 'prop1',
-            prop2 : 'prop2'
+        expect(() => sandbox.run()).to.throw(Error);
+        expect(() => sandbox.getGlobal()).to.throw(Error);
+        expect(() => sandbox.dispose()).to.throw(Error);
+    });
+
+    it('should write global variables in scripts on sandbox', () => {
+        const sandbox = {
+            prop1: 'prop1',
+            prop2: 'prop2'
         };
         Contextify(sandbox);
         sandbox.run('x = 3');
-        test.equal(sandbox.x, 3);
-        test.done();
-    },
 
-    // Synchronous context script execution:
-    // Ensure that sandbox properties can be accessed as global variables.
-    'sandbox properties should be globals' : function (test) {
-        var sandbox = {
-            prop1 : 'prop1',
-            prop2 : 'prop2'
-        };
-        Contextify(sandbox);
-        sandbox.run("test1 = (prop1 == 'prop1');" +
-                    "test2 = (prop2 == 'prop2');");
-        test.ok(sandbox.test1);
-        test.ok(sandbox.test2);
-        test.done();
-    }
-};
-
-exports['asynchronous script tests'] = {
-    // Asynchronous context script execution:
-    // Ensure that global variables are put on the sandbox object.
-    'global variables in scripts should go on sandbox' : function (test) {
-        var sandbox = {
-            setTimeout : setTimeout,
-            prop1 : 'prop1',
-            prop2 : 'prop2'
-        };
-        Contextify(sandbox);
-        sandbox.run('setTimeout(function () {x = 3}, 0);');
-        test.equal(sandbox.x, undefined);
-        setTimeout(function () {
-            test.equal(sandbox.x, 3);
-            test.done();
-        }, 0);
-    },
-
-    // Asynchronous context script execution:
-    // Ensure that sandbox properties can be accessed as global variables.
-    'sandbox properties should be globals' : function (test) {
-        var sandbox = {
-            setTimeout : setTimeout,
-            prop1 : 'prop1',
-            prop2 : 'prop2'
-        };
-        Contextify(sandbox);
-        sandbox.run("setTimeout(function () {" +
-                    "test1 = (prop1 == 'prop1');" +
-                    "test2 = (prop2 == 'prop2');" +
-                    "}, 0)");
-        test.equal(sandbox.test1, undefined);
-        test.equal(sandbox.test2, undefined);
-        setTimeout(function () {
-            test.ok(sandbox.test1);
-            test.ok(sandbox.test2);
-            test.done();
-        }, 0);
-    },
-
-    // Asynchronous context script execution:
-    // Ensure that sandbox properties can be accessed as global variables.
-    'createContext: sandbox properties should be globals' : function (test) {
-        var sandbox = {
-            setTimeout : setTimeout,
-            prop1 : 'prop1',
-            prop2 : 'prop2'
-        };
-        var context = Contextify.createContext(sandbox);
-        context.run("setTimeout(function () {" +
-                    "test1 = (prop1 == 'prop1');" +
-                    "test2 = (prop2 == 'prop2');" +
-                    "}, 0)");
-        test.equal(sandbox.test1, undefined);
-        test.equal(sandbox.test2, undefined);
-        setTimeout(function () {
-            test.ok(sandbox.test1);
-            test.ok(sandbox.test2);
-            test.done();
-        }, 0);
-    },
-
-    // Asynchronous context script execution:
-    // Ensure that async execution is safely executed after dispose
-    'setTimeout should not fail after dispose' : function (test) {
-        var sandbox = {
-            test: test,
-            setTimeout : setTimeout,
-            prop1 : 'prop1',
-            prop2 : 'prop2'
-        };
-        Contextify(sandbox);
-        sandbox.run("setTimeout(function () {" +
-                    "test.ok(prop1 == 'prop1');" +
-                    "test.ok(prop2 == 'prop2');" +
-                    "test.done();" +
-                    "}, 10)");
-        test.equal(sandbox.test1, undefined);
-        test.equal(sandbox.test2, undefined);
-        sandbox.dispose();
-    }
-};
-
-exports['test global'] = {
-    // Make sure getGlobal() works.
-    'basic test' : function (test) {
-        var sandbox = {
-            prop1 : 'prop1',
-            prop2 : 'prop2'
-        };
-        Contextify(sandbox);
-        var global = sandbox.getGlobal();
-        test.notDeepEqual(global, null);
-        test.notDeepEqual(global, undefined);
-        // Make sure global is forwarding properly.
-        test.equal(global.prop1, 'prop1');
-        test.equal(global.prop2, 'prop2');
-        global.prop3 = 'prop3';
-        test.equal(sandbox.prop3, 'prop3');
-        test.done();
-    },
-
-    // Make sure that references to the global are correct.
-    'self references to the global object' : function (test) {
-        var sandbox = Contextify({});
-        var global = sandbox.getGlobal();
-        sandbox.ref1 = global;
-        sandbox.ref2 = {
-            ref2 : global
-        };
-        sandbox.run("test1 = (this == ref1);" +
-                    "test2 = (this == ref2.ref2);");
-        test.ok(sandbox.test1);
-        test.ok(sandbox.test2);
-        test.done();
-    },
-
-    // Make sure the enumerator is enumerating correctly.
-    'test enumerator' : function (test) {
-        var sandbox = {
-            prop1 : 'prop1',
-            prop2 : 'prop2'
-        };
-        var global = Contextify(sandbox).getGlobal();
-        var globalProps = Object.keys(global);
-        test.equal(globalProps.length, 5);
-        test.ok(globalProps.indexOf('prop1') != -1);
-        test.ok(globalProps.indexOf('prop2') != -1);
-        test.ok(globalProps.indexOf('run') != -1);
-        test.ok(globalProps.indexOf('getGlobal') != -1);
-        test.ok(globalProps.indexOf('dispose') != -1);
-        test.done();
-    },
-
-    // Make sure deleter is working.
-    'test deleter' : function (test) {
-        var sandbox = {
-            prop1 : 'prop1',
-            prop2 : 'prop2'
-        };
-        var global = Contextify(sandbox).getGlobal();
-        test.equal(Object.keys(global).length, 5);
-        test.equal(Object.keys(sandbox).length, 5);
-        delete global.prop1;
-        test.equal(Object.keys(global).length, 4);
-        test.equal(Object.keys(sandbox).length, 4);
-        delete global.prop2;
-        test.equal(Object.keys(global).length, 3);
-        test.equal(Object.keys(sandbox).length, 3);
-        delete global.run;
-        test.equal(Object.keys(global).length, 2);
-        test.equal(Object.keys(sandbox).length, 2);
-        delete global.getGlobal;
-        test.equal(Object.keys(global).length, 1);
-        test.equal(Object.keys(sandbox).length, 1);
-        delete global.dispose;
-        test.equal(Object.keys(global).length, 0);
-        test.equal(Object.keys(sandbox).length, 0);
-        test.done();
-    },
-
-    // Make sure the global's class name is the same as the sandbox.
-    'test global class name' : function (test) {
-        function DOMWindow () {};
-        var sandbox = Contextify(new DOMWindow());
-        var global = sandbox.getGlobal();
-        test.equal(sandbox.constructor.name, 'DOMWindow');
-        test.equal(sandbox.constructor.name, global.constructor.name);
-        sandbox.run('thisName = this.constructor.name');
-        test.equal(sandbox.thisName, sandbox.constructor.name);
-        test.done();
-    },
-
-    // Make sure functions in global scope are accessible through global.
-    'test global functions' : function (test) {
-        var sandbox = Contextify();
-        var global = sandbox.getGlobal();
-        sandbox.run("function testing () {}");
-        test.notEqual(global.testing, undefined);
-        test.done();
-    },
-
-    // Make sure global can be a receiver for run().
-    'test global.run()' : function (test) {
-        var global = Contextify().getGlobal();
-        global.run("x = 5");
-        test.equal(global.x, 5);
-        test.done();
-    },
-
-    // Make sure global can be a receiver for getGlobal().
-    'test global.getGlobal()' : function (test) {
-        var global = Contextify().getGlobal();
-        test.deepEqual(global, global.getGlobal());
-        test.done();
-    },
-
-    //Make sure global can be a receiver for dispose().
-    'test global.dispose()' : function (test) {
-        var sandbox = Contextify();
-        var global = sandbox.getGlobal();
-        test.notEqual(global.run, undefined);
-        test.notEqual(global.getGlobal, undefined);
-        test.notEqual(global.dispose, undefined);
-        global.dispose();
-        // It's not safe to use the global after disposing.
-        test.throws(function () {
-            sandbox.run();
-        }, Error);
-        test.throws(function () {
-            sandbox.getGlobal();
-        }, Error);
-        test.throws(function () {
-            sandbox.dispose();
-        }, Error);
-        test.done();
-    },
-
-    'test context delete global' : function (test) {
-        var sandbox = Contextify({});
-        sandbox.global = sandbox.getGlobal();
-        sandbox.run('delete global.global;');
-        test.ok(!sandbox.global);
-        sandbox.dispose();
-        test.done();
-    },
-
-    'test context delete unwritable global' : function (test) {
-        var sandbox = Contextify({});
-        Object.defineProperty(sandbox, 'global', {
-          enumerable: false,
-          configurable: false,
-          writable: false,
-          value: sandbox.getGlobal()
-        });
-
-        sandbox.run('delete global.global;');
-        test.ok(sandbox.global);
-        test.ok(sandbox.global.global);
-        sandbox.dispose();
-        test.done();
-    }
-};
-
-
-// Test that multiple contexts don't interfere with each other.
-exports['test multiple contexts'] = function (test) {
-    var sandbox1 = {
-        prop1 : 'prop1',
-        prop2 : 'prop2'
-    };
-    var sandbox2 = {
-        prop1 : 'prop1',
-        prop2 : 'prop2'
-    };
-    var global1 = Contextify(sandbox1).getGlobal();
-    var global2 = Contextify(sandbox2).getGlobal();
-    test.equal(global1.prop1, 'prop1');
-    test.equal(global2.prop1, 'prop1');
-    sandbox1.run('test = 3');
-    sandbox2.run('test = 4');
-    test.equal(sandbox1.test, 3);
-    test.equal(global1.test, 3);
-    test.equal(sandbox2.test, 4);
-    test.equal(global2.test, 4);
-    test.done();
-};
-
-// Test console - segfaults in REPL.
-exports['test console'] = function (test) {
-    var sandbox = {
-        console : console,
-        prop1 : 'prop1'
-    };
-    Contextify(sandbox);
-    test.doesNotThrow(function () {
-        sandbox.run('console.log(prop1);');
+        expect(sandbox.x).to.equal(3);
     });
-    test.done();
-};
 
+    it('should expose sandbox properties as globals', () => {
+        const sandbox = {
+            prop1 : 'prop1',
+            prop2 : 'prop2'
+        };
+        Contextify(sandbox);
+        sandbox.run(`test1 = (prop1 == 'prop1');
+                    test2 = (prop2 == 'prop2');`);
 
-// Test eval scope.
-exports['test eval'] = {
-    'basic test' : function (test) {
-        var sandbox = Contextify();
-        sandbox.run('eval("test1 = 1")');
-        test.equal(sandbox.test1, 1);
-        sandbox.run('(function() { eval("test2 = 2") })()');
-        test.equal(sandbox.test2, 2);
-        test.done();
-    },
+        expect(sandbox.test1).to.be.true;
+        expect(sandbox.test2).to.be.true;
+    });
 
-    'this test' : function (test) {
-        var sandbox = Contextify();
-        sandbox.run('e = eval ; e("test1 = 1")');
-        test.equal(sandbox.test1, 1);
-        sandbox.run('var t = 1 ; (function() { var t = 2; test2 = eval("t") })()');
-        test.equal(sandbox.test2, 2);
-        sandbox.run('t = 1 ; (function() { var t = 2; e = eval; test3 = e("t") })()');
-        test.equal(sandbox.test3, 1);
-        sandbox.run('var t = 1 ; global = this; (function() { var t = 2; e = eval; test4 = global.eval.call(global, "t") })()');
-        test.equal(sandbox.test4, 1);
-        test.done();
-    }
-};
+    it('should prevent multiple contexts from interfering with each other', () => {
+        const sandbox1 = {
+            prop1 : 'prop1',
+            prop2 : 'prop2'
+        };
+        const sandbox2 = {
+            prop1 : 'prop1',
+            prop2 : 'prop2'
+        };
+        const global1 = Contextify(sandbox1).getGlobal();
+        const global2 = Contextify(sandbox2).getGlobal();
 
+        expect(global1.prop1).to.equal('prop1');
+        expect(global2.prop1).to.equal('prop1');
 
-// Make sure exceptions get thrown for invalid scripts.
-exports['test exceptions'] = {
-    'basic test' : function (test) {
-        var sandbox = Contextify();
-        // Exceptions thrown from "run" will be from the Contextified context.
-        var ReferenceError = sandbox.run('ReferenceError');
-        var SyntaxError    = sandbox.run('SyntaxError');
-        test.throws(function () {
-            sandbox.run('doh');
-        }, ReferenceError);
-        test.throws(function () {
-            sandbox.run('x = y');
-        }, ReferenceError);
-        test.throws(function () {
-            sandbox.run('function ( { (( }{);');
-        }, SyntaxError);
-        test.done();
-    },
+        sandbox1.run('test = 3');
+        sandbox2.run('test = 4');
 
-    'test double dispose() - sandbox' : function (test) {
-        var sandbox = Contextify();
-        test.doesNotThrow(function () {
-            sandbox.dispose();
+        expect(sandbox1.test).to.equal(3);
+        expect(global1.test).to.equal(3);
+        expect(sandbox2.test).to.equal(4);
+        expect(global2.test).to.equal(4);
+    });
+
+    it('should allow function calls on sandbox properties', () => {
+        const sandbox = {
+            console: {log: sinon.spy()},
+            prop1: 'prop1'
+        };
+
+        Contextify(sandbox);
+
+        expect(() => sandbox.run('console.log(prop1);')).not.to.throw();
+        expect(sandbox.console.log).to.have.been.calledWith(sandbox.prop1);
+    });
+
+    describe('createContext', () => {
+        it('should work with an object sandbox', () => {
+            const sandbox = {
+                prop1: 'prop1',
+                prop2: 'prop2'
+            };
+            const context = Contextify.createContext(sandbox);
+
+            expect(sandbox.prop1).to.equal('prop1');
+            expect(sandbox.prop2).to.equal('prop2');
         });
-        test.throws(function () {
-            sandbox.dispose();
-        }, 'Called dispose() twice.');
-        test.done();
-    },
 
-    'test double dispose - global' : function (test) {
-        var sandbox = Contextify();
-        var global = sandbox.getGlobal();
-        test.doesNotThrow(function () {
+        it('should not modify the sandbox', () => {
+            const sandbox = {};
+            Contextify.createContext(sandbox);
+
+            expect(sandbox.run).to.be.undefined;
+            expect(sandbox.getGlobal).to.be.undefined;
+            expect(sandbox.dispose).to.be.undefined;
+        });
+
+        it('should support properties with the value of "undefined"', () => {
+            const sandbox = { x: undefined };
+            const context = Contextify.createContext(sandbox);
+            context.run("_x = x");
+
+            expect(sandbox._x).to.be.undefined;
+        });
+
+        it('should support running scripts', () => {
+            var sandbox = {};
+            var context = Contextify.createContext(sandbox);
+            context.run('var x = 3', 'test.js');
+
+            expect(sandbox.x).to.equal(3);
+        });
+    });
+
+    describe('createScript', () => {
+        it('should create a script object', () => {
+            const script = Contextify.createScript('var x = 3', 'test.js');
+
+            expect(typeof script.runInContext).to.equal('function');
+        });
+
+        it('should throw if not passed a source code string', () => {
+            expect(() => Contextify.createScript()).to.throw();
+            expect(() => Contextify.createScript(true)).to.throw();
+            expect(() => Contextify.createScript(null)).to.throw();
+            expect(() => Contextify.createScript(1)).to.throw();
+        });
+
+        it('should run in a context', () => {
+            const sandbox = {};
+            const script = Contextify.createScript('var x = 3', 'test.js');
+            const context = Contextify.createContext(sandbox);
+
+            script.runInContext(context);
+            expect(sandbox.x).to.equal(3);
+        });
+    });
+
+    describe('getGlobal()', () => {
+        it('should forward globals', () => {
+            const sandbox = {
+                prop1 : 'prop1',
+                prop2 : 'prop2'
+            };
+
+            Contextify(sandbox);
+            const global = sandbox.getGlobal();
+
+            expect(global).not.to.be.null;
+            expect(global).not.to.be.undefined;
+
+            expect(global.prop1).to.equal('prop1');
+            expect(global.prop2).to.equal('prop2');
+
+            global.prop3 = 'prop3';
+            expect(sandbox.prop3).to.equal('prop3');
+        });
+
+        it('should self reference the global object', () => {
+            const sandbox = Contextify({});
+            const global = sandbox.getGlobal();
+
+            sandbox.ref1 = global;
+            sandbox.ref2 = {ref2 : global};
+            sandbox.run(`test1 = (this == ref1);
+                     test2 = (this == ref2.ref2);`);
+
+            expect(sandbox.test1).to.be.true;
+            expect(sandbox.test2).to.be.true;
+        });
+
+        it('should enumerate the global object correctly', () => {
+            const sandbox = {
+                prop1 : 'prop1',
+                prop2 : 'prop2'
+            };
+            const global = Contextify(sandbox).getGlobal();
+            const globalProps = Object.keys(global);
+
+            expect(globalProps.length).to.equal(5);
+            expect(globalProps.indexOf('prop1')).not.to.equal(-1);
+            expect(globalProps.indexOf('prop2')).not.to.equal(-1);
+            expect(globalProps.indexOf('run')).not.to.equal(-1);
+            expect(globalProps.indexOf('getGlobal')).not.to.equal(-1);
+            expect(globalProps.indexOf('dispose')).not.to.equal(-1);
+        });
+
+        it('should delete properties from teh global object correctly', () => {
+            const sandbox = {
+                prop1 : 'prop1',
+                prop2 : 'prop2'
+            };
+            const global = Contextify(sandbox).getGlobal();
+
+            expect(Object.keys(global).length).to.equal(5);
+            expect(Object.keys(sandbox).length).to.equal(5);
+
+            delete global.prop1;
+            expect(Object.keys(global).length).to.equal(4);
+            expect(Object.keys(sandbox).length).to.equal(4);
+
+            delete global.prop2;
+            expect(Object.keys(global).length).to.equal(3);
+            expect(Object.keys(sandbox).length).to.equal(3);
+
+            delete global.run;
+            expect(Object.keys(global).length).to.equal(2);
+            expect(Object.keys(sandbox).length).to.equal(2);
+
+            delete global.getGlobal;
+            expect(Object.keys(global).length).to.equal(1);
+            expect(Object.keys(sandbox).length).to.equal(1);
+
+            delete global.dispose;
+            expect(Object.keys(global).length).to.equal(0);
+            expect(Object.keys(sandbox).length).to.equal(0);
+        });
+
+        it('should set the global object\'s class name', () => {
+            function DOMWindow () {};
+
+            const sandbox = Contextify(new DOMWindow());
+            const global = sandbox.getGlobal();
+
+            expect(sandbox.constructor.name).to.equal('DOMWindow');
+            expect(sandbox.constructor.name).to.equal(global.constructor.name);
+
+            sandbox.run('thisName = this.constructor.name');
+            expect(sandbox.thisName).to.equal(sandbox.constructor.name);
+        });
+
+        it('should forward functions declared in global scope', () => {
+            const sandbox = Contextify();
+            const global = sandbox.getGlobal();
+
+            sandbox.run("function testing () {}");
+
+            expect(global.testing).not.to.be.undefined;
+        });
+
+        it('should support a run() function', () => {
+            const global = Contextify().getGlobal();
+            global.run("x = 5");
+
+            expect(global.x).to.equal(5);
+        });
+
+        it('should support a getGlobal() function', () => {
+            const global = Contextify().getGlobal();
+            expect(global).to.equal(global.getGlobal());
+        });
+
+        //Make sure global can be a receiver for dispose().
+        it('should support a dispose() function', () => {
+            const sandbox = Contextify();
+            const global = sandbox.getGlobal();
+
+            expect(global.run).not.to.be.undefined;
+            expect(global.getGlobal).not.to.be.undefined;
+            expect(global.dispose).not.to.be.undefined;
+
             global.dispose();
-        });
-        test.throws(function () {
-            global.dispose();
-        }, 'Called dispose() twice.');
-        test.done();
-    },
 
-    'test run() after dispose()' : function (test) {
-        var sandbox = Contextify();
-        test.doesNotThrow(function () {
+            expect(() => sandbox.run()).to.throw(Error);
+            expect(() => sandbox.getGlobal()).to.throw(Error);
+            expect(() => sandbox.dispose()).to.throw(Error);
+        });
+
+        it('should permit deleting global', () => {
+            const sandbox = Contextify({});
+
+            sandbox.global = sandbox.getGlobal();
+            sandbox.run('delete global.global;');
+
+            expect(sandbox.global).to.be.undefined;
+
             sandbox.dispose();
         });
-        test.throws(function () {
-            sandbox.run('var x = 3');
-        }, 'Called run() after dispose().');
-        test.done();
-    },
 
-    'test getGlobal() after dispose()' : function (test) {
-        var sandbox = Contextify();
-        test.doesNotThrow(function () {
+        it('should not permit deleting unwritable globals', () => {
+            const sandbox = Contextify({});
+
+            Object.defineProperty(sandbox, 'global', {
+                enumerable: false,
+                configurable: false,
+                writable: false,
+                value: sandbox.getGlobal()
+            });
+
+            sandbox.run('delete global.global;');
+
+            expect(sandbox.global).not.to.be.undefined;
+            expect(sandbox.global.global).not.to.be.undefined;
+
             sandbox.dispose();
         });
-        test.throws(function () {
-            var g = sandbox.getGlobal();
-        }, 'Called getGlobal() after dispose().');
-        test.done();
-    }
-};
+    });
 
-exports['test scripts'] = {
-    'test createScript()' : function (test) {
-        var script = Contextify.createScript('var x = 3', 'test.js');
-        test.equal(typeof script.runInContext, 'function');
-        test.done();
-    },
+    describe('Exceptional conditions', () => {
+        it('should be thrown from the Contextified context', () => {
+            const sandbox = Contextify();
+            const ReferenceError = sandbox.run('ReferenceError');
+            const SyntaxError    = sandbox.run('SyntaxError');
 
-    'test createScript() without code' : function (test) {
-        test.throws(function () {
-            Contextify.createScript();
+            expect(() => sandbox.run('doh')).to.throw(ReferenceError);
+            expect(() => sandbox.run('x = y')).to.throw(ReferenceError);
+            expect(() => sandbox.run('function ( { (( }{);')).to.throw(SyntaxError);
         });
-        test.throws(function () {
-            Contextify.createScript(true);
-        });
-        test.throws(function () {
-            Contextify.createScript(null);
-        });
-        test.throws(function () {
-            Contextify.createScript(1);
-        });
-        test.done();
-    },
 
-    'test runInContext' : function (test) {
-        var sandbox = {};
-        var script = Contextify.createScript('var x = 3', 'test.js');
-        var context = Contextify.createContext(sandbox);
-        script.runInContext(context);
-        test.equal(sandbox.x, 3);
-        test.done();
-    }
-};
+        it('sandbox dispose() should not be callable twice', () => {
+            const sandbox = Contextify();
+
+            expect(() => sandbox.dispose()).not.to.throw();
+            expect(() => sandbox.dispose()).to.throw('Called dispose() after dispose().');
+        });
+
+        it('global dispose() should not be callable twice', () => {
+            const sandbox = Contextify();
+            const global = sandbox.getGlobal();
+
+            expect(() => global.dispose()).not.to.throw();
+            expect(() => global.dispose()).to.throw('Called dispose() after dispose().');
+        });
+
+        it('sandbox run() should not be callable after dispose()', () => {
+            const sandbox = Contextify();
+
+            expect(() => sandbox.dispose()).not.to.throw();
+            expect(() => sandbox.run('var x = 3')).to.throw('Called run() after dispose().');
+        });
+
+        it('sandbox getGlobal() should not be callable after dispose()', () => {
+            const sandbox = Contextify();
+
+            expect(() => sandbox.dispose()).not.to.throw();
+            expect(() => { const g = sandbox.getGlobal(); }).to.throw('Called getGlobal() after dispose().');
+        });
+    });
+
+    describe('Context-native eval', () => {
+        it('should work in contexts', () => {
+            const sandbox = Contextify();
+
+            sandbox.run('eval("test1 = 1")');
+            expect(sandbox.test1).to.equal(1);
+
+            sandbox.run('(function() { eval("test2 = 2") })()');
+            expect(sandbox.test2).to.equal(2);
+        });
+
+        it('shouldn\'t break global this', () => {
+            const sandbox = Contextify();
+
+            sandbox.run('e = eval ; e("test1 = 1")');
+            expect(sandbox.test1).to.equal(1);
+
+            sandbox.run('var t = 1 ; (function() { var t = 2; test2 = eval("t") })()');
+            expect(sandbox.test2).to.equal(2);
+
+            sandbox.run('t = 1 ; (function() { var t = 2; e = eval; test3 = e("t") })()');
+            expect(sandbox.test3).to.equal(1);
+
+            sandbox.run('var t = 1 ; global = this; (function() { var t = 2; e = eval; test4 = global.eval.call(global, "t") })()');
+            expect(sandbox.test4).to.equal(1);
+
+        });
+    });
+
+    describe('Asynchronous script behavior', () => {
+        it('should write global variables in scripts on sandbox', (done) => {
+            var sandbox = {
+                setTimeout : setTimeout,
+                prop1 : 'prop1',
+                prop2 : 'prop2'
+            };
+
+            Contextify(sandbox);
+            sandbox.run('setTimeout(function () {x = 3}, 0);');
+
+            expect(sandbox.x).to.be.undefined;
+
+            setTimeout(() => {
+                expect(sandbox.x).to.equal(3);
+                done();
+            }, 0);
+        });
+
+        it('should expose sandbox properties as globals', (done) => {
+            const sandbox = {
+                setTimeout : setTimeout,
+                prop1 : 'prop1',
+                prop2 : 'prop2'
+            };
+
+            Contextify(sandbox);
+            sandbox.run(`setTimeout(function () {
+                                    test1 = (prop1 == 'prop1');
+                                    test2 = (prop2 == 'prop2');
+                                }, 0);`);
+
+            expect(sandbox.test1).to.be.undefined;
+            expect(sandbox.test2).to.be.undefined;
+
+            setTimeout(() => {
+                expect(sandbox.test1).to.be.true;
+                expect(sandbox.test2).to.be.true;
+                done();
+            });
+        });
+
+        it('should support async execution after dispose()', (done) => {
+            const sandbox = {
+                done,
+                expect,
+                setTimeout,
+                prop1: 'prop1',
+                prop2: 'prop2'
+            };
+            Contextify(sandbox);
+
+            sandbox.run(`setTimeout(function () {
+                                    expect(prop1 == 'prop1').to.be.true;
+                                    expect(prop2 == 'prop2').to.be.true;
+                                    done();
+                                }, 10);`);
+
+            expect(sandbox.test1).to.be.undefined;
+            expect(sandbox.test2).to.be.undefined;
+
+            sandbox.dispose();
+        });
+
+        describe('createContext', () => {
+            it('should expose sandbox properties as globals', (done) => {
+                const sandbox = {
+                    setTimeout,
+                    prop1: 'prop1',
+                    prop2: 'prop2'
+                };
+                const context = Contextify.createContext(sandbox);
+
+                context.run(`setTimeout(() => {
+                                        test1 = (prop1 == 'prop1');
+                                        test2 = (prop2 == 'prop2');
+                                    }, 0);`);
+
+                expect(sandbox.test1).to.be.undefined;
+                expect(sandbox.test2).to.be.undefined;
+
+                setTimeout(() => {
+                    expect(sandbox.test1).to.be.true;
+                    expect(sandbox.test2).to.be.true;
+                    done();
+                }, 0);
+            });
+        });
+    });
+});
