@@ -1,51 +1,48 @@
 {
-  "name": "contextify",
-  "version": "0.1.14",
-  "description": "Turn an object into a persistent execution context.",
-  "author": "Brian McDaniel <brianmcd05@gmail.com>",
-  "contributors": [
-    "Assaf Arkin <assaf@labnotes.org> (http://labnotes.org/)",
-    "Benjamin Byholm (https://research.it.abo.fi/people/bbyholm)",
-    "Marshall Roch <marshall@mroch.com>",
-    "Nathan Rajlich <nathan@tootallnate.net> (http://n8.io)",
-    "Paul Tan (https://github.com/pyokagan)",
-    "Jeremy Stashewsky <jstash@gmail.com>",
-    "Rex Morgan (http://www.rexflex.net/)",
-    "Tom Gallacher <me@tomg.co> (http://tomg.co)",
-    "Kevin Decker <kpdecker@gmail.com> (http://www.incaseofstairs.com)",
-    "Sergei Ianovich (https://github.com/yanovich)",
-    "Andrew Paprocki (https://github.com/apaprocki)",
-    "Trygve Lie (https://github.com/trygve-lie)"
-  ],
-  "keywords": [
-    "context",
-    "vm"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/brianmcd/contextify.git"
-  },
-  "main": "./lib/contextify",
-  "scripts": {
-    "test": "mocha"
-  },
-  "engines": {
-    "node": ">=0.12.7"
-  },
-  "licenses": [
-    {
-      "type": "MIT",
-      "url": "http://github.com/brianmcd/contextify/blob/master/LICENSE.txt"
+    "name": "contextify",
+    "version": "0.1.14",
+    "description": "Turn an object into a persistent execution context.",
+    "author": "Brian McDaniel <brianmcd05@gmail.com>",
+    "contributors": [ 
+        "Assaf Arkin <assaf@labnotes.org> (http://labnotes.org/)" ,
+        "Benjamin Byholm (https://research.it.abo.fi/people/bbyholm)",
+        "Marshall Roch <marshall@mroch.com>",
+        "Nathan Rajlich <nathan@tootallnate.net> (http://n8.io)",
+        "Paul Tan (https://github.com/pyokagan)",
+        "Jeremy Stashewsky <jstash@gmail.com>",
+        "Rex Morgan (http://www.rexflex.net/)",
+        "Tom Gallacher <me@tomg.co> (http://tomg.co)",
+        "Kevin Decker <kpdecker@gmail.com> (http://www.incaseofstairs.com)",
+        "Sergei Ianovich (https://github.com/yanovich)",
+        "Andrew Paprocki (https://github.com/apaprocki)",
+        "Trygve Lie (https://github.com/trygve-lie)"
+    ], 
+    "keywords": ["context","vm"],
+    "repository": {
+        "type" : "git",
+        "url": "https://github.com/brianmcd/contextify.git"
+    },
+    "main": "./lib/contextify",
+    "scripts": {
+        "test": "mocha"
+    },
+    "engines": {
+        "node": ">=0.12.7"
+    },
+    "licenses": [
+        {
+            "type" : "MIT",
+            "url" : "http://github.com/brianmcd/contextify/blob/master/LICENSE.txt"
+        }
+    ],
+    "dependencies": {
+        "bindings" : "*",
+        "nan" : "^2.1.0"
+    },
+    "devDependencies": {
+	"chai": "^5.4.0",
+	"mocha": "^2.3.3",
+	"sinon": "^1.17.2",
+	"sinon-chai": "^2.8.0"
     }
-  ],
-  "dependencies": {
-    "bindings": "*",
-    "nan": "^2.1.0"
-  },
-  "devDependencies": {
-    "chai": "^3.4.0",
-    "mocha": "^2.3.3",
-    "sinon": "^1.17.2",
-    "sinon-chai": "^2.8.0"
-  }
 }
