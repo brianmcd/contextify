@@ -35,9 +35,9 @@ public:
     // we have a reference to our "host" JavaScript object.  If we try to use
     // handle_ in the ContextifyContext constructor, it will be empty since it's
     // set in ObjectWrap::Wrap.
-    void Wrap(Handle<Object> handle);
+    void Wrap(Local<Object> handle);
 
-    static void Init(Handle<Object> target) {
+    static void Init(Local<Object> target) {
         Nan::HandleScope scope;
 
         Local<String> className = Nan::New("ContextifyContext").ToLocalChecked();
@@ -100,7 +100,7 @@ public:
         }
     }
 
-    static bool InstanceOf(Handle<Value> value) {
+    static bool InstanceOf(Local<Value> value) {
         return Nan::New(jsTmpl)->HasInstance(value);
     }
 
@@ -126,15 +126,14 @@ public:
         constructor.Reset(tmpl->GetFunction());
     }
 
-    static Local<Context> createV8Context(Handle<Object> jsContextify) {
+    static Local<Context> createV8Context(Local<Object> jsContextify) {
         Nan::EscapableHandleScope scope;
         Local<Object> wrapper = Nan::New(constructor)->NewInstance();
 
         ContextWrap *contextWrapper = new ContextWrap();
         contextWrapper->Wrap(wrapper);
 
-        Local<Object> obj = Local<Object>::New(Isolate::GetCurrent(), jsContextify);
-        Nan::Persistent<Object>(obj).SetWeak(contextWrapper, &ContextWrap::weakCallback, Nan::WeakCallbackType::kParameter);
+        Nan::Persistent<Object>(jsContextify).SetWeak(contextWrapper, &ContextWrap::weakCallback, Nan::WeakCallbackType::kParameter);
         contextWrapper->ctx = ObjectWrap::Unwrap<ContextifyContext>(jsContextify);
 
         Local<FunctionTemplate> ftmpl = Nan::New<FunctionTemplate>();
@@ -210,7 +209,7 @@ private:
             !Nan::New(ctx->proxyGlobal)->GetRealNamedProperty(property).IsEmpty()) {
             info.GetReturnValue().Set(Nan::New<Integer>(None));
          } else {
-            info.GetReturnValue().Set(Handle<Integer>());
+            info.GetReturnValue().Set(Local<Integer>());
          }
     }
 
@@ -250,7 +249,7 @@ private:
 Nan::Persistent<FunctionTemplate> ContextWrap::functionTemplate;
 Nan::Persistent<Function>         ContextWrap::constructor;
 
-void ContextifyContext::Wrap(Handle<Object> handle) {
+void ContextifyContext::Wrap(Local<Object> handle) {
     ObjectWrap::Wrap(handle);
     Local<Context> lcontext = ContextWrap::createV8Context(handle);
     context.Reset(lcontext);
@@ -262,7 +261,7 @@ public:
     static Nan::Persistent<FunctionTemplate> scriptTmpl;
     Nan::Persistent<Nan::UnboundScript> script;
 
-    static void Init(Handle<Object> target) {
+    static void Init(Local<Object> target) {
         Nan::HandleScope scope;
 
         Local<String> className = Nan::New("ContextifyScript").ToLocalChecked();
@@ -296,7 +295,7 @@ public:
             return;
         }
 
-        Handle<Context> context = Nan::GetCurrentContext();
+        Local<Context> context = Nan::GetCurrentContext();
         Context::Scope context_scope(context);
 
         ScriptOrigin origin(filename.ToLocalChecked());
@@ -352,10 +351,11 @@ Nan::Persistent<FunctionTemplate> ContextifyContext::jsTmpl;
 Nan::Persistent<FunctionTemplate> ContextifyScript::scriptTmpl;
 
 extern "C" {
-    static void init(Handle<Object> target) {
+    NAN_MODULE_INIT(init) {
         ContextifyContext::Init(target);
         ContextifyScript::Init(target);
         ContextWrap::Init();
-    }
-    NODE_MODULE(contextify, init)
+    };
+
+    NODE_MODULE(contextify, init);
 };
