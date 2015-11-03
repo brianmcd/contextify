@@ -53,17 +53,11 @@ public:
     }
 
     static NAN_METHOD(New) {
-        if (info.Length() < 1) {
-            Nan::ThrowError("Wrong number of arguments passed to ContextifyContext constructor");
-            info.GetReturnValue().SetUndefined();
-            return;
-        }
+        if (info.Length() < 1)
+            return Nan::ThrowError("Wrong number of arguments passed to ContextifyContext constructor");
 
-        if (!info[0]->IsObject()) {
-            Nan::ThrowTypeError("Argument to ContextifyContext constructor must be an object.");
-            info.GetReturnValue().SetUndefined();
-            return;
-        }
+        if (!info[0]->IsObject())
+            return Nan::ThrowTypeError("Argument to ContextifyContext constructor must be an object.");
 
         ContextifyContext* ctx = new ContextifyContext(info[0]->ToObject());
         ctx->Wrap(info.This());
@@ -71,16 +65,12 @@ public:
     }
 
     static NAN_METHOD(Run) {
-        if (info.Length() == 0) {
-            Nan::ThrowError("Must supply at least 1 argument to run");
-            info.GetReturnValue().SetUndefined();
-            return;
-        }
-        if (!info[0]->IsString()) {
-            Nan::ThrowTypeError("First argument to run must be a String.");
-            info.GetReturnValue().SetUndefined();
-            return;
-        }
+        if (info.Length() == 0)
+            return Nan::ThrowError("Must supply at least 1 argument to run");
+	
+        if (!info[0]->IsString())
+            return Nan::ThrowTypeError("First argument to run must be a String.");
+
         ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(info.This());
         Local<Context> lcontext = Nan::New(ctx->context);
         Context::Scope ctxScope(lcontext);
@@ -186,10 +176,8 @@ private:
         Local<Object> data = info.Data()->ToObject();
         ContextifyContext* ctx = ObjectWrap::Unwrap<ContextWrap>(data)->ctx;
 
-        if (!ctx) {
-            info.GetReturnValue().SetUndefined();
+        if (!ctx)
             return;
-        }
 
         Local<Value> rv = Nan::New(ctx->sandbox)->GetRealNamedProperty(property);
 
@@ -204,10 +192,8 @@ private:
         Local<Object> data = info.Data()->ToObject();
         ContextifyContext* ctx = ObjectWrap::Unwrap<ContextWrap>(data)->ctx;
 
-        if (!ctx) {
-            info.GetReturnValue().SetUndefined();
+        if (!ctx)
             return;
-        }
 
         Nan::New(ctx->sandbox)->Set(property, value);
         info.GetReturnValue().Set(value);
@@ -217,10 +203,8 @@ private:
         Local<Object> data = info.Data()->ToObject();
         ContextifyContext* ctx = ObjectWrap::Unwrap<ContextWrap>(data)->ctx;
 
-        if (!ctx) {
-            info.GetReturnValue().Set(Nan::New<Integer>(None));
-            return;
-        }
+        if (!ctx)
+            return info.GetReturnValue().Set(Nan::New<Integer>(None));
 
         if (!Nan::New(ctx->sandbox)->GetRealNamedProperty(property).IsEmpty() ||
             !Nan::New(ctx->proxyGlobal)->GetRealNamedProperty(property).IsEmpty()) {
@@ -234,10 +218,8 @@ private:
         Local<Object> data = info.Data()->ToObject();
         ContextifyContext* ctx = ObjectWrap::Unwrap<ContextWrap>(data)->ctx;
 
-        if (!ctx) {
-            info.GetReturnValue().Set(Nan::New(false));
-            return;
-        }
+        if (!ctx)
+            return info.GetReturnValue().Set(Nan::New(false));
 
         bool success = Nan::New(ctx->sandbox)->Delete(property);
         info.GetReturnValue().Set(Nan::New(success));
@@ -249,8 +231,7 @@ private:
 
         if (!ctx) {
             Local<Array> blank = Array::New(0);
-            info.GetReturnValue().Set(blank);
-            return;
+            return info.GetReturnValue().Set(blank);
         }
 
         info.GetReturnValue().Set(Nan::New(ctx->sandbox)->GetPropertyNames());
@@ -299,11 +280,8 @@ public:
         ContextifyScript *contextify_script = new ContextifyScript();
         contextify_script->Wrap(info.Holder());
 
-        if (info.Length() < 1) {
-            Nan::ThrowTypeError("needs at least 'code' argument.");
-            info.GetReturnValue().SetUndefined();
-            return;
-        }
+        if (info.Length() < 1)
+            return Nan::ThrowTypeError("needs at least 'code' argument.");
 
         Local<String> code = info[0]->ToString();
 
@@ -335,16 +313,11 @@ public:
     }
 
     static NAN_METHOD(RunInContext) {
-        if (info.Length() == 0) {
-            Nan::ThrowError("Must supply at least 1 argument to runInContext");
-            info.GetReturnValue().SetUndefined();
-            return;
-        }
-        if (!ContextifyContext::InstanceOf(info[0]->ToObject())) {
-            Nan::ThrowTypeError("First argument must be a ContextifyContext.");
-            info.GetReturnValue().SetUndefined();
-            return;
-        }
+        if (info.Length() == 0)
+            return Nan::ThrowError("Must supply at least 1 argument to runInContext");
+
+        if (!ContextifyContext::InstanceOf(info[0]->ToObject()))
+            return Nan::ThrowTypeError("First argument must be a ContextifyContext.");
 
         ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(info[0]->ToObject());
         Local<Context> lcontext = Nan::New(ctx->context);
