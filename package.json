@@ -40,7 +40,7 @@
         "nan" : "^2.1.0"
     },
     "devDependencies": {
-	"chai": "^5.4.0",
+	"chai": "^3.4.0",
 	"mocha": "^2.3.3",
 	"sinon": "^1.17.2",
 	"sinon-chai": "^2.8.0"
