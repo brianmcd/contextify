@@ -86,7 +86,7 @@ public:
         Context::Scope ctxScope(lcontext);
         Local<String> code = info[0]->ToString();
 
-        TryCatch trycatch;
+        Nan::TryCatch trycatch;
         Nan::MaybeLocal<Nan::BoundScript> script;
 
         if (info.Length() > 1 && info[1]->IsString()) {
@@ -307,7 +307,7 @@ public:
 
         Local<String> code = info[0]->ToString();
 
-        TryCatch trycatch;
+        Nan::TryCatch trycatch;
 
         Nan::MaybeLocal<String> filename = info.Length() > 1
                                ? info[1]->ToString()
@@ -354,7 +354,7 @@ public:
         ContextifyScript* wrapped_script = ObjectWrap::Unwrap<ContextifyScript>(info.This());
         Nan::MaybeLocal<Nan::UnboundScript> script = Nan::New(wrapped_script->script);
 
-        TryCatch trycatch;
+        Nan::TryCatch trycatch;
 
         if (script.IsEmpty()) {
             trycatch.ReThrow();
