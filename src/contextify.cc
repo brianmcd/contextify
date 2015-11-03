@@ -355,7 +355,7 @@ extern "C" {
         ContextifyContext::Init(target);
         ContextifyScript::Init(target);
         ContextWrap::Init();
-    };
+    }
 
-    NODE_MODULE(contextify, init);
+    NODE_MODULE(contextify, init)
 };
