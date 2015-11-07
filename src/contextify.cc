@@ -7,7 +7,7 @@ using namespace node;
 
 class ContextWrap;
 
-class ContextifyContext : public ObjectWrap {
+class ContextifyContext : public Nan::ObjectWrap {
 public:
     Nan::Persistent<Context> context;
     Nan::Persistent<Object>  sandbox;
@@ -71,7 +71,7 @@ public:
         if (!info[0]->IsString())
             return Nan::ThrowTypeError("First argument to run must be a String.");
 
-        ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(info.This());
+        ContextifyContext* ctx = Nan::ObjectWrap::Unwrap<ContextifyContext>(info.This());
         Local<Context> lcontext = Nan::New(ctx->context);
         Context::Scope ctxScope(lcontext);
         Local<String> code = info[0]->ToString();
@@ -105,7 +105,7 @@ public:
     }
 
     static NAN_METHOD(GetGlobal) {
-        ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(info.This());
+        ContextifyContext* ctx = Nan::ObjectWrap::Unwrap<ContextifyContext>(info.This());
         info.GetReturnValue().Set(Nan::New(ctx->proxyGlobal));
     }
 };
@@ -115,7 +115,7 @@ public:
 // pass the main JavaScript context object we're embedded in, then the
 // NamedPropertyHandler will store a reference to it forever and keep it
 // from getting gc'd.
-class ContextWrap : public ObjectWrap {
+class ContextWrap : public Nan::ObjectWrap {
 public:
     static void Init(void) {
         Nan::HandleScope scope;
@@ -134,13 +134,14 @@ public:
         contextWrapper->Wrap(wrapper);
 
         Nan::Persistent<Object>(jsContextify).SetWeak(contextWrapper, &ContextWrap::weakCallback, Nan::WeakCallbackType::kParameter);
-        contextWrapper->ctx = ObjectWrap::Unwrap<ContextifyContext>(jsContextify);
+        contextWrapper->ctx = Nan::ObjectWrap::Unwrap<ContextifyContext>(jsContextify);
 
         Local<FunctionTemplate> ftmpl = Nan::New<FunctionTemplate>();
         ftmpl->SetHiddenPrototype(true);
         ftmpl->SetClassName(Nan::New(contextWrapper->ctx->sandbox)->GetConstructorName());
         Local<ObjectTemplate> otmpl = ftmpl->InstanceTemplate();
-        otmpl->SetNamedPropertyHandler(GlobalPropertyGetter,
+        Nan::SetNamedPropertyHandler(otmpl,
+                                       GlobalPropertyGetter,
                                        GlobalPropertySetter,
                                        GlobalPropertyQuery,
                                        GlobalPropertyDeleter,
@@ -171,9 +172,9 @@ private:
         return true;
     }
 
-    static void GlobalPropertyGetter(Local<String> property, const PropertyCallbackInfo<Value>& info) {
+    static void GlobalPropertyGetter(Local<String> property, const Nan::PropertyCallbackInfo<Value>& info) {
         Local<Object> data = info.Data()->ToObject();
-        ContextifyContext* ctx = ObjectWrap::Unwrap<ContextWrap>(data)->ctx;
+        ContextifyContext* ctx = Nan::ObjectWrap::Unwrap<ContextWrap>(data)->ctx;
 
         if (!ctx)
             return;
@@ -187,9 +188,9 @@ private:
         info.GetReturnValue().Set(rv);
     }
 
-    static void GlobalPropertySetter(Local<String> property, Local<Value> value, const PropertyCallbackInfo<Value>& info) {
+    static void GlobalPropertySetter(Local<String> property, Local<Value> value, const Nan::PropertyCallbackInfo<Value>& info) {
         Local<Object> data = info.Data()->ToObject();
-        ContextifyContext* ctx = ObjectWrap::Unwrap<ContextWrap>(data)->ctx;
+        ContextifyContext* ctx = Nan::ObjectWrap::Unwrap<ContextWrap>(data)->ctx;
 
         if (!ctx)
             return;
@@ -198,9 +199,9 @@ private:
         info.GetReturnValue().Set(value);
     }
 
-    static void GlobalPropertyQuery(Local<String> property, const PropertyCallbackInfo<Integer>& info) {
+    static void GlobalPropertyQuery(Local<String> property, const Nan::PropertyCallbackInfo<Integer>& info) {
         Local<Object> data = info.Data()->ToObject();
-        ContextifyContext* ctx = ObjectWrap::Unwrap<ContextWrap>(data)->ctx;
+        ContextifyContext* ctx = Nan::ObjectWrap::Unwrap<ContextWrap>(data)->ctx;
 
         if (!ctx)
             return info.GetReturnValue().Set(Nan::New<Integer>(None));
@@ -213,9 +214,9 @@ private:
          }
     }
 
-    static void GlobalPropertyDeleter(Local<String> property, const PropertyCallbackInfo<Boolean>& info) {
+    static void GlobalPropertyDeleter(Local<String> property, const Nan::PropertyCallbackInfo<Boolean>& info) {
         Local<Object> data = info.Data()->ToObject();
-        ContextifyContext* ctx = ObjectWrap::Unwrap<ContextWrap>(data)->ctx;
+        ContextifyContext* ctx = Nan::ObjectWrap::Unwrap<ContextWrap>(data)->ctx;
 
         if (!ctx)
             return info.GetReturnValue().Set(Nan::New(false));
@@ -224,9 +225,9 @@ private:
         info.GetReturnValue().Set(Nan::New(success));
     }
 
-    static void GlobalPropertyEnumerator(const PropertyCallbackInfo<Array>& info) {
+    static void GlobalPropertyEnumerator(const Nan::PropertyCallbackInfo<Array>& info) {
         Local<Object> data = info.Data()->ToObject();
-        ContextifyContext* ctx = ObjectWrap::Unwrap<ContextWrap>(data)->ctx;
+        ContextifyContext* ctx = Nan::ObjectWrap::Unwrap<ContextWrap>(data)->ctx;
 
         if (!ctx) {
             Local<Array> blank = Array::New(0);
@@ -250,13 +251,13 @@ Nan::Persistent<FunctionTemplate> ContextWrap::functionTemplate;
 Nan::Persistent<Function>         ContextWrap::constructor;
 
 void ContextifyContext::Wrap(Local<Object> handle) {
-    ObjectWrap::Wrap(handle);
+    Nan::ObjectWrap::Wrap(handle);
     Local<Context> lcontext = ContextWrap::createV8Context(handle);
     context.Reset(lcontext);
     proxyGlobal.Reset(lcontext->Global());
 }
 
-class ContextifyScript : public ObjectWrap {
+class ContextifyScript : public Nan::ObjectWrap {
 public:
     static Nan::Persistent<FunctionTemplate> scriptTmpl;
     Nan::Persistent<Nan::UnboundScript> script;
@@ -318,12 +319,12 @@ public:
         if (!ContextifyContext::InstanceOf(info[0]->ToObject()))
             return Nan::ThrowTypeError("First argument must be a ContextifyContext.");
 
-        ContextifyContext* ctx = ObjectWrap::Unwrap<ContextifyContext>(info[0]->ToObject());
+        ContextifyContext* ctx = Nan::ObjectWrap::Unwrap<ContextifyContext>(info[0]->ToObject());
         Local<Context> lcontext = Nan::New(ctx->context);
 
         Context::Scope scope(lcontext);
 
-        ContextifyScript* wrapped_script = ObjectWrap::Unwrap<ContextifyScript>(info.This());
+        ContextifyScript* wrapped_script = Nan::ObjectWrap::Unwrap<ContextifyScript>(info.This());
         Nan::MaybeLocal<Nan::UnboundScript> script = Nan::New(wrapped_script->script);
 
         Nan::TryCatch trycatch;
@@ -351,7 +352,7 @@ Nan::Persistent<FunctionTemplate> ContextifyContext::jsTmpl;
 Nan::Persistent<FunctionTemplate> ContextifyScript::scriptTmpl;
 
 extern "C" {
-    NAN_MODULE_INIT(init) {
+    static void init(Local<Object> target) {
         ContextifyContext::Init(target);
         ContextifyScript::Init(target);
         ContextWrap::Init();
