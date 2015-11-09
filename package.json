@@ -24,7 +24,7 @@
     },
     "main": "./lib/contextify",
     "scripts": {
-        "test": "nodeunit test/"
+        "test": "mocha"
     },
     "engines": {
         "node": ">=0.12.7"
@@ -40,6 +40,9 @@
         "nan": "^2.1.0"
     },
     "devDependencies": {
-        "nodeunit" : ">=0.5.x"
+	"chai": "^3.4.0",
+	"mocha": "^2.3.3",
+	"sinon": "^1.17.2",
+	"sinon-chai": "^2.8.0"
     }
 }
