@@ -1,8 +1,20 @@
 # Contextify
 
+## YOU DON'T NEED THIS MODULE ON NODE >= 0.12
+
+As of Node 0.12, Contextify has been merged into Node (thanks to @domenic), replacing the native `vm` module.
+The code has been improved on since then, so if at all possible, you should use a newer Node and the native `vm` module.
+Note that newer versions of JSDOM no longer depend on Contextify.
+
+The README below applies to Node 0.10 and below.
+
+## Installation issues
+
+Make sure you have the `node-gyp` prerequisites installed: https://github.com/nodejs/node-gyp#installation
+
 For Windows issues, see here: https://github.com/brianmcd/contextify/wiki/Windows-Installation-Guide
 
-Please add to the wiki if you find new issues/solutions.
+## What is Contextify?
 
 Turn an object into a V8 execution context.  A contextified object acts as the global 'this' when executing scripts in its context.  Contextify adds 3 methods to the contextified object: run(code, filename), getGlobal(), and dispose().  The main difference between Contextify and Node's vm methods is that Contextify allows asynchronous functions to continue executing in the Contextified object's context.  See vm vs. Contextify below for more discussion.
 
