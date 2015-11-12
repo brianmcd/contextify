@@ -2,7 +2,7 @@ import Options
 import os
 import sys
 
-VERSION = '0.1.14'
+VERSION = '0.1.15'
 
 def set_options(opt):
   opt.tool_options("compiler_cxx")
