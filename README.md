@@ -1,4 +1,5 @@
-# Contextify
+# UNMAINTAINED
+This module is no longer being maintained.  If you're interested in becoming a maintainer, please open an issue.
 
 ## YOU DON'T NEED THIS MODULE ON NODE >= 0.12
 
@@ -7,6 +8,8 @@ The code has been improved on since then, so if at all possible, you should use 
 Note that newer versions of JSDOM no longer depend on Contextify.
 
 The README below applies to Node 0.10 and below.
+
+# Contextify
 
 ## Installation issues
 
