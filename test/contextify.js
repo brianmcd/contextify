@@ -283,8 +283,8 @@ exports['test global'] = {
         };
         Contextify(sandbox);
         var global = sandbox.getGlobal();
-        test.notDeepEqual(global, null);
-        test.notDeepEqual(global, undefined);
+        test.notEqual(global, null);
+        test.notEqual(global, undefined);
         // Make sure global is forwarding properly.
         test.equal(global.prop1, 'prop1');
         test.equal(global.prop2, 'prop2');
