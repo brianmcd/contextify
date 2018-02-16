@@ -128,7 +128,7 @@ public:
 
     static Local<Context> createV8Context(Local<Object> jsContextify) {
         Nan::EscapableHandleScope scope;
-        Local<Object> wrapper = Nan::New(constructor)->NewInstance();
+        Local<Object> wrapper = Nan::NewInstance(Nan::New(constructor)).ToLocalChecked();
 
         ContextWrap *contextWrapper = new ContextWrap();
         contextWrapper->Wrap(wrapper);
