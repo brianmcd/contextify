@@ -67,7 +67,7 @@ public:
     static NAN_METHOD(Run) {
         if (info.Length() == 0)
             return Nan::ThrowError("Must supply at least 1 argument to run");
-	
+
         if (!info[0]->IsString())
             return Nan::ThrowTypeError("First argument to run must be a String.");
 
