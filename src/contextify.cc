@@ -141,12 +141,12 @@ public:
         ftmpl->SetClassName(Nan::New(contextWrapper->ctx->sandbox)->GetConstructorName());
         Local<ObjectTemplate> otmpl = ftmpl->InstanceTemplate();
         Nan::SetNamedPropertyHandler(otmpl,
-                                       GlobalPropertyGetter,
-                                       GlobalPropertySetter,
-                                       GlobalPropertyQuery,
-                                       GlobalPropertyDeleter,
-                                       GlobalPropertyEnumerator,
-                                       wrapper);
+                                     GlobalPropertyGetter,
+                                     GlobalPropertySetter,
+                                     GlobalPropertyQuery,
+                                     GlobalPropertyDeleter,
+                                     GlobalPropertyEnumerator,
+                                     wrapper);
         otmpl->SetAccessCheckCallbacks(GlobalPropertyNamedAccessCheck,
                                        GlobalPropertyIndexedAccessCheck);
         return scope.Escape(Nan::New<Context>(static_cast<ExtensionConfiguration*>(NULL), otmpl));
@@ -209,9 +209,9 @@ private:
         if (!Nan::New(ctx->sandbox)->GetRealNamedProperty(property).IsEmpty() ||
             !Nan::New(ctx->proxyGlobal)->GetRealNamedProperty(property).IsEmpty()) {
             info.GetReturnValue().Set(Nan::New<Integer>(None));
-         } else {
+        } else {
             info.GetReturnValue().Set(Local<Integer>());
-         }
+        }
     }
 
     static void GlobalPropertyDeleter(Local<String> property, const Nan::PropertyCallbackInfo<Boolean>& info) {
