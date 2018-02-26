@@ -147,8 +147,16 @@ public:
                                        GlobalPropertyDeleter,
                                        GlobalPropertyEnumerator,
                                        wrapper);
+#if NODE_MODULE_VERSION <= NODE_6_0_MODULE_VERSION
         otmpl->SetAccessCheckCallbacks(GlobalPropertyNamedAccessCheck,
                                        GlobalPropertyIndexedAccessCheck);
+#else
+        NamedPropertyHandlerConfiguration namedPropertyHandlerConfiguration;
+        IndexedPropertyHandlerConfiguration indexedPropertyHandlerConfiguration;
+        otmpl->SetAccessCheckCallbackAndHandler(AccessCheckCallback,
+                                                namedPropertyHandlerConfiguration,
+                                                indexedPropertyHandlerConfiguration);
+#endif
         return scope.Escape(Nan::New<Context>(static_cast<ExtensionConfiguration*>(NULL), otmpl));
     }
 
@@ -158,6 +166,7 @@ private:
     ~ContextWrap() {
     }
 
+#if NODE_MODULE_VERSION <= NODE_6_0_MODULE_VERSION
     static bool GlobalPropertyNamedAccessCheck(Local<Object> host,
                                                Local<Value>  key,
                                                AccessType    type,
@@ -171,6 +180,13 @@ private:
                                                  Local<Value>  data) {
         return true;
     }
+#else
+    static bool AccessCheckCallback(Local<Context> accessing_context,
+                                    Local<Object> accessed_object,
+                                    Local<Value> data) {
+        return true;
+    }
+#endif
 
     static void GlobalPropertyGetter(Local<String> property, const Nan::PropertyCallbackInfo<Value>& info) {
         Local<Object> data = info.Data()->ToObject();
