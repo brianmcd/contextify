@@ -128,7 +128,7 @@ public:
 
     static Local<Context> createV8Context(Local<Object> jsContextify) {
         Nan::EscapableHandleScope scope;
-        Local<Object> wrapper = Nan::New(constructor)->NewInstance();
+        Local<Object> wrapper = Nan::NewInstance(Nan::New(constructor)).ToLocalChecked();
 
         ContextWrap *contextWrapper = new ContextWrap();
         contextWrapper->Wrap(wrapper);
@@ -195,13 +195,12 @@ private:
         if (!ctx)
             return;
 
-        Local<Value> rv = Nan::New(ctx->sandbox)->GetRealNamedProperty(property);
+        Nan::MaybeLocal<Value> rv = Nan::GetRealNamedProperty(Nan::New(ctx->sandbox),
+                                                              property);
+        if (rv.IsEmpty())
+            return;
 
-//        if (rv.IsEmpty()) {
-//            rv = Nan::New(ctx->proxyGlobal)->GetRealNamedProperty(property);
-//        }
-
-        info.GetReturnValue().Set(rv);
+        info.GetReturnValue().Set(rv.ToLocalChecked());
     }
 
     static void GlobalPropertySetter(Local<String> property, Local<Value> value, const Nan::PropertyCallbackInfo<Value>& info) {
@@ -222,8 +221,8 @@ private:
         if (!ctx)
             return info.GetReturnValue().Set(Nan::New<Integer>(None));
 
-        if (!Nan::New(ctx->sandbox)->GetRealNamedProperty(property).IsEmpty() ||
-            !Nan::New(ctx->proxyGlobal)->GetRealNamedProperty(property).IsEmpty()) {
+        if (!Nan::GetRealNamedProperty(Nan::New(ctx->sandbox), property).IsEmpty() ||
+            !Nan::GetRealNamedProperty(Nan::New(ctx->proxyGlobal), property).IsEmpty()) {
             info.GetReturnValue().Set(Nan::New<Integer>(None));
          } else {
             info.GetReturnValue().Set(Local<Integer>());
