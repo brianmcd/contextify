@@ -128,7 +128,7 @@ public:
 
     static Local<Context> createV8Context(Local<Object> jsContextify) {
         Nan::EscapableHandleScope scope;
-        Local<Object> wrapper = Nan::New(constructor)->NewInstance();
+        Local<Object> wrapper = Nan::NewInstance(Nan::New(constructor)).ToLocalChecked();
 
         ContextWrap *contextWrapper = new ContextWrap();
         contextWrapper->Wrap(wrapper);
@@ -147,8 +147,16 @@ public:
                                      GlobalPropertyDeleter,
                                      GlobalPropertyEnumerator,
                                      wrapper);
+#if NODE_MODULE_VERSION <= NODE_6_0_MODULE_VERSION
         otmpl->SetAccessCheckCallbacks(GlobalPropertyNamedAccessCheck,
                                        GlobalPropertyIndexedAccessCheck);
+#else
+        NamedPropertyHandlerConfiguration namedPropertyHandlerConfiguration;
+        IndexedPropertyHandlerConfiguration indexedPropertyHandlerConfiguration;
+        otmpl->SetAccessCheckCallbackAndHandler(AccessCheckCallback,
+                                                namedPropertyHandlerConfiguration,
+                                                indexedPropertyHandlerConfiguration);
+#endif
         return scope.Escape(Nan::New<Context>(static_cast<ExtensionConfiguration*>(NULL), otmpl));
     }
 
@@ -158,6 +166,7 @@ private:
     ~ContextWrap() {
     }
 
+#if NODE_MODULE_VERSION <= NODE_6_0_MODULE_VERSION
     static bool GlobalPropertyNamedAccessCheck(Local<Object> host,
                                                Local<Value>  key,
                                                AccessType    type,
@@ -171,6 +180,13 @@ private:
                                                  Local<Value>  data) {
         return true;
     }
+#else
+    static bool AccessCheckCallback(Local<Context> accessing_context,
+                                    Local<Object> accessed_object,
+                                    Local<Value> data) {
+        return true;
+    }
+#endif
 
     static void GlobalPropertyGetter(Local<String> property, const Nan::PropertyCallbackInfo<Value>& info) {
         Local<Object> data = info.Data()->ToObject();
@@ -179,13 +195,12 @@ private:
         if (!ctx)
             return;
 
-        Local<Value> rv = Nan::New(ctx->sandbox)->GetRealNamedProperty(property);
+        Nan::MaybeLocal<Value> rv = Nan::GetRealNamedProperty(Nan::New(ctx->sandbox),
+                                                              property);
+        if (rv.IsEmpty())
+            return;
 
-//        if (rv.IsEmpty()) {
-//            rv = Nan::New(ctx->proxyGlobal)->GetRealNamedProperty(property);
-//        }
-
-        info.GetReturnValue().Set(rv);
+        info.GetReturnValue().Set(rv.ToLocalChecked());
     }
 
     static void GlobalPropertySetter(Local<String> property, Local<Value> value, const Nan::PropertyCallbackInfo<Value>& info) {
@@ -206,8 +221,8 @@ private:
         if (!ctx)
             return info.GetReturnValue().Set(Nan::New<Integer>(None));
 
-        if (!Nan::New(ctx->sandbox)->GetRealNamedProperty(property).IsEmpty() ||
-            !Nan::New(ctx->proxyGlobal)->GetRealNamedProperty(property).IsEmpty()) {
+        if (!Nan::GetRealNamedProperty(Nan::New(ctx->sandbox), property).IsEmpty() ||
+            !Nan::GetRealNamedProperty(Nan::New(ctx->proxyGlobal), property).IsEmpty()) {
             info.GetReturnValue().Set(Nan::New<Integer>(None));
         } else {
             info.GetReturnValue().Set(Local<Integer>());
