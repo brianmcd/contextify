@@ -67,7 +67,7 @@ public:
     static NAN_METHOD(Run) {
         if (info.Length() == 0)
             return Nan::ThrowError("Must supply at least 1 argument to run");
-	
+
         if (!info[0]->IsString())
             return Nan::ThrowTypeError("First argument to run must be a String.");
 
@@ -141,12 +141,12 @@ public:
         ftmpl->SetClassName(Nan::New(contextWrapper->ctx->sandbox)->GetConstructorName());
         Local<ObjectTemplate> otmpl = ftmpl->InstanceTemplate();
         Nan::SetNamedPropertyHandler(otmpl,
-                                       GlobalPropertyGetter,
-                                       GlobalPropertySetter,
-                                       GlobalPropertyQuery,
-                                       GlobalPropertyDeleter,
-                                       GlobalPropertyEnumerator,
-                                       wrapper);
+                                     GlobalPropertyGetter,
+                                     GlobalPropertySetter,
+                                     GlobalPropertyQuery,
+                                     GlobalPropertyDeleter,
+                                     GlobalPropertyEnumerator,
+                                     wrapper);
 #if NODE_MODULE_VERSION <= NODE_6_0_MODULE_VERSION
         otmpl->SetAccessCheckCallbacks(GlobalPropertyNamedAccessCheck,
                                        GlobalPropertyIndexedAccessCheck);
@@ -224,9 +224,9 @@ private:
         if (!Nan::GetRealNamedProperty(Nan::New(ctx->sandbox), property).IsEmpty() ||
             !Nan::GetRealNamedProperty(Nan::New(ctx->proxyGlobal), property).IsEmpty()) {
             info.GetReturnValue().Set(Nan::New<Integer>(None));
-         } else {
+        } else {
             info.GetReturnValue().Set(Local<Integer>());
-         }
+        }
     }
 
     static void GlobalPropertyDeleter(Local<String> property, const Nan::PropertyCallbackInfo<Boolean>& info) {
