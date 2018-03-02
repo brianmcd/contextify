@@ -1,7 +1,5 @@
-#include "node.h"
-#include "node_version.h"
 #include "nan.h"
-#include <string>
+
 using namespace v8;
 using namespace node;
 
