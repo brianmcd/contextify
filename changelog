@@ -1,3 +1,6 @@
+1.0.0
+    * Add support for Node 8 and 9 (Tomoaki Abe - @abetomo)
+    * BREAKING CHANGE: Drop support for Node < 4.
 0.1.15
     * Add support for Node 4 (Ido Ben-Yair - @idoby and Rod Vagg - @rvagg)
 0.1.14
