@@ -131,7 +131,9 @@ public:
         ContextWrap *contextWrapper = new ContextWrap();
         contextWrapper->Wrap(wrapper);
 
-        Nan::Persistent<Object>(jsContextify).SetWeak(contextWrapper, &ContextWrap::weakCallback, Nan::WeakCallbackType::kParameter);
+        Nan::Persistent<Object>(jsContextify).SetWeak(contextWrapper,
+                                                      &ContextWrap::weakCallback,
+                                                      Nan::WeakCallbackType::kParameter);
         contextWrapper->ctx = Nan::ObjectWrap::Unwrap<ContextifyContext>(jsContextify);
 
         Local<FunctionTemplate> ftmpl = Nan::New<FunctionTemplate>();
@@ -186,7 +188,8 @@ private:
     }
 #endif
 
-    static void GlobalPropertyGetter(Local<String> property, const Nan::PropertyCallbackInfo<Value>& info) {
+    static void GlobalPropertyGetter(Local<String> property,
+                                     const Nan::PropertyCallbackInfo<Value>& info) {
         Local<Object> data = info.Data()->ToObject();
         ContextifyContext* ctx = Nan::ObjectWrap::Unwrap<ContextWrap>(data)->ctx;
 
@@ -201,7 +204,8 @@ private:
         info.GetReturnValue().Set(rv.ToLocalChecked());
     }
 
-    static void GlobalPropertySetter(Local<String> property, Local<Value> value, const Nan::PropertyCallbackInfo<Value>& info) {
+    static void GlobalPropertySetter(Local<String> property, Local<Value> value,
+                                     const Nan::PropertyCallbackInfo<Value>& info) {
         Local<Object> data = info.Data()->ToObject();
         ContextifyContext* ctx = Nan::ObjectWrap::Unwrap<ContextWrap>(data)->ctx;
 
@@ -212,7 +216,8 @@ private:
         info.GetReturnValue().Set(value);
     }
 
-    static void GlobalPropertyQuery(Local<String> property, const Nan::PropertyCallbackInfo<Integer>& info) {
+    static void GlobalPropertyQuery(Local<String> property,
+                                    const Nan::PropertyCallbackInfo<Integer>& info) {
         Local<Object> data = info.Data()->ToObject();
         ContextifyContext* ctx = Nan::ObjectWrap::Unwrap<ContextWrap>(data)->ctx;
 
@@ -227,7 +232,8 @@ private:
         }
     }
 
-    static void GlobalPropertyDeleter(Local<String> property, const Nan::PropertyCallbackInfo<Boolean>& info) {
+    static void GlobalPropertyDeleter(Local<String> property,
+                                      const Nan::PropertyCallbackInfo<Boolean>& info) {
         Local<Object> data = info.Data()->ToObject();
         ContextifyContext* ctx = Nan::ObjectWrap::Unwrap<ContextWrap>(data)->ctx;
 
